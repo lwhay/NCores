@@ -13,6 +13,8 @@
 
 #define UNIT 4
 
+#define MEMCPY 0
+
 using namespace std;
 
 /*  $./memcopy.exe 1
@@ -100,7 +102,13 @@ int main(int argc, char **argv) {
         gettimeofday(&begTime, NULL);
         for (long long i = 0; i < count; i++) {
             //cout << des << " + " << i * gran << "<->" << src << " + " << i * gran << endl;
+#if MEMCPY
             memcpy(des + i * gran, src + i * gran, gran * 4);
+#else
+            for (int j = 0; j < gran; j++) {
+                des[i * gran + j] = src[i * gran + j];
+            }
+#endif
             copycount++;
         }
         gettimeofday(&endTime, NULL);
