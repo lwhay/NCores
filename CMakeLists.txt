@@ -9,7 +9,7 @@ if (CMAKE_BUILD_TYPE STREQUAL Relese)
 endif ()
 
 if (CMAKE_SYSTEM_NAME MATCHES "Linux")
-    find_package(Boost 1.50.0 REQUIRED COMPONENTS)
+    find_package(Boost 1.50.0 REQUIRED COMPONENTS program_options date_time filesystem iostreams)
     set(PTHREAD -lpthread)
     set(AIO /usr/lib64/libaio.so)
 else ()
