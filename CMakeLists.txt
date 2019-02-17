@@ -13,10 +13,13 @@ if (CMAKE_SYSTEM_NAME MATCHES "Linux")
     set(PTHREAD -lpthread)
     set(AIO /usr/lib64/libaio.so)
 else ()
-    set(BOOST_ROOT D:/boost)
-    set(Boost_INCLUDE_DIR ${BOOST_ROOT}/include)
+    message("Windows cygwin")
+    set(CMAKE_C_COMPILER "gcc")
+    set(CMAKE_CXX_COMPILER "g++")
+    set(BOOST_ROOT D:/cygwin64)
+    set(Boost_INCLUDE_DIR ${BOOST_ROOT}/usr/include)
     set(Boost_LIBRARY_DIR ${BOOST_ROOT}/lib)
-    find_package(Boost 1.66.0 REQUIRED COMPONENTS)
+    find_package(Boost 1.66.0 REQUIRED COMPONENTS program_options date_time filesystem iostreams)
     include_directories(${Boost_INCLUDE_DIR})
     link_directories(${Boost_LIBRARY_DIR})
 endif ()
@@ -236,6 +239,7 @@ if (WITH_BLOCK_TESTS)
             test/io/DiskPerformanceTest.cpp
             test/io/DiskAnsyncIOTest.cpp
             test/block/buffer/BlockCacheTest.cpp
+            test/block/BlockManagerTest.cpp
             test/io/codec/lz4CodecTest.cpp
             test/io/RandomSeekTest.cpp
             )
@@ -348,7 +352,7 @@ foreach (sourcefile ${BLOCK_TEST_EXES})
             EXCLUDE_FROM_DEFAULT_BUILD_RELWITHDEBINFO 1
             OUTPUT_NAME ${exename}${ARTIFACT_SUFFIX}
             )
-    target_link_libraries(${CMAKE_PROJECT_NAME}_${exename}${ARTIFACT_SUFFIX} gtest ${LIBS} ${LZ4_LIBRARIES} ${PTHREAD} ${AIO})
+    target_link_libraries(${CMAKE_PROJECT_NAME}_${exename}${ARTIFACT_SUFFIX} gtest ${LIBS} ${Boost_LIBRARIES} ${LZ4_LIBRARIES} ${PTHREAD} ${AIO})
     if (NOT "${exename}" MATCHES "db_sanity_test")
         add_test(NAME ${exename} COMMAND ${exename}${ARTIFACT_SUFFIX})
         add_dependencies(check ${CMAKE_PROJECT_NAME}_${exename}${ARTIFACT_SUFFIX})
