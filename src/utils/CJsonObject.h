@@ -11,7 +11,6 @@
 
 #include <stdio.h>
 #include <stddef.h>
-#include <malloc.h>
 #include <errno.h>
 #include <unistd.h>
 #include <limits.h>
@@ -20,6 +19,10 @@
 #include <string>
 #include <map>
 #include "cJSON.h"
+
+#ifndef __APPLE__
+#include <malloc.h>
+#endif
 
 namespace parser {
 

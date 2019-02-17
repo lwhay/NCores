@@ -29,7 +29,9 @@
 #include "../../src/fdtree/error.h"
 
 #ifndef linux
+#ifndef __APPLE__
 #include <process.h>
+#endif
 #endif
 
 #ifndef _strcmpi

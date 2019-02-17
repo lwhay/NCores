@@ -2,9 +2,12 @@
 // Created by Michael on 2018/12/10.
 //
 #include <iostream>
-#include <malloc.h>
 #include <assert.h>
 #include "utils.h"
+
+#ifndef __APPLE__
+#include <malloc.h>
+#endif
 
 #define DEFAULT_VOLUME (1LL << 32)
 
