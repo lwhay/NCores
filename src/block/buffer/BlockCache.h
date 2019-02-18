@@ -2,23 +2,44 @@
 
 #include <iostream>
 #include <fstream>
+#include <limits>
 #include "FileOperations.h"
 #include "CoresIterator.h"
+#include "CoresAppender.h"
 #include "CoresBlock.h"
 #include "CoresRandomAccessor.h"
 
+using namespace std;
+
 template<typename type>
-class PrimitiveBlock : public CoresIterator<type>, public CoresBlock<type>, public CoresRandomAccesessor<type> {
-    int *_cache;
+class PrimitiveBlock
+        : public CoresIterator<type>,
+          public CoresAppender<type>,
+          public CoresBlock<type>,
+          public CoresRandomAccesessor<type> {
+    type *_cache;
 
     FILE *_fp;
 
-    uint64_t _offset;
+    size_t _offset;
 
     int _count;
 
+    int _limit;
+
+    size_t _cursor;
+
+    size_t _total;
+
 public:
-    PrimitiveBlock(FILE *fp, long begin, int count) : _cache(new int[count]), _fp(fp), _offset(begin), _count(count) {}
+    PrimitiveBlock(FILE *fp, size_t begin, int count = 0, int limit = 1024) : _cache(new int[count]), _fp(fp),
+                                                                              _offset(begin), _count(count),
+                                                                              _limit(limit),
+                                                                              _cursor(0) {
+        bigseek(fp, 0, SEEK_END);
+        _total = bigtell(fp);
+        bigseek(fp, _offset, SEEK_SET);
+    }
 
     void set(int idx, type value) {
         _cache[idx] = value;
@@ -28,11 +49,23 @@ public:
         return _cache[idx];
     }
 
-    ~PrimitiveBlock() { delete[] _cache; }
+    void append(type value) {
+        _cache[_count] = value;
+        if (_count++ == _limit) {
+            appendToFile();
+            _offset += _count * sizeof(type);
+            _count = 0;
+        }
+    }
+
+    ~PrimitiveBlock() {
+        delete[] _cache;
+        fflush(_fp);
+    }
 
     type *readFromFile() {
         if (bigseek(_fp, _offset, SEEK_SET) == 0) {
-            fread(_cache, sizeof(type), _count, _fp);
+            fread(_cache, sizeof(type), _limit, _fp);
         } else {
             printf("Cannot seek block: %lld", _offset);
         }
@@ -40,7 +73,7 @@ public:
     }
 
     type *loadFromFile() {
-        fread(_cache, sizeof(type), _count, _fp);
+        fread(_cache, sizeof(type), _limit, _fp);
         return _cache;
     }
 
@@ -49,7 +82,7 @@ public:
     }
 
     void appendToFile(type *buf) {
-        fwrite(_cache, sizeof(type), _count, _fp);
+        fwrite(_cache, sizeof(type), _limit, _fp);
     }
 
     void writeToFile() {
@@ -69,15 +102,32 @@ public:
     }
 
     void open() {
+        bigseek(_fp, _offset, SEEK_SET);
+        _cursor = 0;
+    }
 
+    void wind(size_t offset) {
+        _offset = offset;
+        bigseek(_fp, _offset, SEEK_SET);
     }
 
     bool hashNext() {
-        bool has = false;
-        return has;
+        if (_cursor < _limit) {
+            return true;
+        }
+        if (_offset >= _total) {
+            return false;
+        }
+        size_t read = fread(_cache, sizeof(type), _limit, _fp);
+        _offset += read;
+        if (read > 0) {
+            _cursor = 0;
+            return true;
+        }
+        return false;
     }
 
-    int next() {
-        return 0;
+    type next() {
+        return _cache[_cursor++];
     }
 };

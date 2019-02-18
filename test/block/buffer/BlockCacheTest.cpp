@@ -14,7 +14,7 @@ using namespace std;
 
 int main(int argc, char **argv) {
     FILE *fp = fopen("./text.dat", "wb+");
-    PrimitiveBlock<int> *intBlock = new PrimitiveBlock<int>(fp, 0L, BLOCK_LIMIT);
+    PrimitiveBlock<int> *intBlock = new PrimitiveBlock<int>(fp, 0L, 0, BLOCK_LIMIT);
     unsigned long long total = 0;
     Tracer tracer;
     tracer.startTime();
@@ -31,7 +31,7 @@ int main(int argc, char **argv) {
 
     fp = fopen("./text.dat", "rb+");
     unsigned long long verify = 0;
-    intBlock = new PrimitiveBlock<int>(fp, 0L, BLOCK_LIMIT);
+    intBlock = new PrimitiveBlock<int>(fp, 0L, 0, BLOCK_LIMIT);
     tracer.startTime();
     unsigned long long count = 0;
     for (int k = 0; k < BLOCK_COUNT; k++) {
