@@ -129,6 +129,7 @@ include_directories(src/osdep)
 include_directories(src/btree)
 include_directories(src/bloom)
 include_directories(src/block)
+include_directories(src/columnar)
 include_directories(src/fdtree)
 include_directories(src/block/buffer)
 include_directories(src/metadata/schema)
@@ -253,6 +254,7 @@ if (WITH_BLOCK_TESTS)
             test/io/DiskAnsyncIOTest.cpp
             test/block/buffer/BlockCacheTest.cpp
             test/block/BlockManagerTest.cpp
+            test/block/BlockAppendTest.cpp
             test/io/codec/lz4CodecTest.cpp
             test/io/RandomSeekTest.cpp
             )

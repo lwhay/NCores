@@ -1,7 +1,6 @@
 #include <iostream>
 #include <fstream>
 #include <stdio.h>
-#include <stdio.h>
 #include <EntityDescriptor.h>
 
 using namespace std;

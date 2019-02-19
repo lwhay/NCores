@@ -295,7 +295,7 @@ namespace bf {
         /// `bitvector::npos` if no 1-bit exists.
         size_type find_from(size_type i) const;
 
-        std::vector <block_type> bits_;
+        std::vector<block_type> bits_;
         size_type num_bits_;
     };
 

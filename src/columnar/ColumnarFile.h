@@ -7,6 +7,7 @@
 #include <vector>
 #include <string>
 #include <unordered_map>
+#include <stdio.h>
 #include "CoresBlock.h"
 #include "BlockManager.h"
 #include "Columnar.h"
@@ -16,29 +17,29 @@ using namespace std;
 
 class ColumnarFile {
     string filepath;
-    File *fp;
+    FILE *fp;
     BlockManager *bm;
     ColumnarHeader header;
     // Temporary metamap will be replaced by Metadata manager.
     unordered_map<string, int> indexMap;
     unordered_map<int, string> nameMap;
-    vector<Columnar<type>> columns;
+    vector<Columnar<size_t>> columns;
 public:
-    ColumnarFile(string path, const BlockManager *blockManager) : filepath(path), bm(blockManager) {}
+    ColumnarFile(string path, BlockManager *blockManager) : filepath(path), bm(blockManager) {}
 
     void create() {
         assert(filepath != null);
-        if (path) {
+        /*if (path) {
             filepath = path;
-        }
-        fp = fopen(filepath, "+wb");
+        }*/
+        fp = fopen(filepath.c_str(), "+wb");
     }
 
     void open() {
         assert(filepath != null);
-        if (path) {
+        /*if (path) {
             filepath = path;
-        }
-        fp = fopen(filepath, "+rb");
+        }*/
+        fp = fopen(filepath.c_str(), "+rb");
     }
 };

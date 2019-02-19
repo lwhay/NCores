@@ -27,7 +27,7 @@ public:
     }
 
     type next() {
-        if (block.hashNext()) {
+        if (block->hashNext()) {
             return block->next();
         }
     }
