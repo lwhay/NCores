@@ -3,11 +3,14 @@
 #include <iostream>
 #include <fstream>
 #include <limits>
+#include <cassert>
 #include "FileOperations.h"
 #include "CoresIterator.h"
 #include "CoresAppender.h"
 #include "CoresBlock.h"
 #include "CoresRandomAccessor.h"
+
+#define CACHE_VALIDATION 0
 
 using namespace std;
 
@@ -26,12 +29,28 @@ class PrimitiveBlock
     size_t _total;
 
 public:
-    PrimitiveBlock(FILE *fp, size_t begin, int count = 0, int limit = 1024) : _cache(new type[count]), _fp(fp),
+    PrimitiveBlock(FILE *fp, size_t begin, int count = 0, int limit = 1024) : _cache(new type[_limit]), _fp(fp),
                                                                               _offset(begin), _count(count),
                                                                               _limit(limit), _cursor(0) {
-        //bigseek(fp, 0, SEEK_END);
+#if CACHE_VALIDATION
+        int itick = 0;
+        bool validation = true;
+        for (itick = 0; itick < _limit; itick++) {
+            _cache[itick] = itick;
+        }
+        for (itick = 0; itick < _limit; itick++) {
+            if (itick != _cache[itick]) {
+                validation = false;
+            }
+        }
+        assert(validation == true);
+        if (validation) {
+            printf("Cache validation succeeds\n");
+        }
+#endif
+        bigseek(fp, 0, SEEK_END);
         _total = bigtell(fp);
-        //bigseek(fp, _offset, SEEK_SET);
+        bigseek(fp, _offset, SEEK_SET);
     }
 
     void set(int idx, type value) {
