@@ -29,7 +29,7 @@ class PrimitiveBlock
     size_t _total;
 
 public:
-    PrimitiveBlock(FILE *fp, size_t begin, int count = 0, int limit = 1024) : _cache(new type[_limit]), _fp(fp),
+    PrimitiveBlock(FILE *fp, size_t begin, int count = 0, int limit = 1024) : _cache(new type[limit]), _fp(fp),
                                                                               _offset(begin), _count(count),
                                                                               _limit(limit), _cursor(0) {
 #if CACHE_VALIDATION
@@ -88,7 +88,7 @@ public:
 
     type *loadFromFile() {
         size_t rs = fread(_cache, sizeof(type), _limit, _fp);
-        //printf("> %llu %llu, %d\n", bigtell(_fp) / sizeof(type), rs, _limit);
+        //printf("> %llu %llu %llu %d\n", bigtell(_fp), sizeof(type), rs, _limit);
         return _cache;
     }
 
@@ -102,7 +102,7 @@ public:
             printf("\t\t%d\n", _cache[i]);
         }*/
         fwrite(_cache, sizeof(type), _limit, _fp);
-        //printf("<\t%llu %llu\n", bigtell(_fp), _offset);
+        //printf("<\t%llu %llu %d %llu\n", bigtell(_fp), sizeof(type), _limit, _offset);
     }
 
     void writeToFile() {

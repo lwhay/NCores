@@ -52,17 +52,19 @@ int fileRWTest() {
     fp = fopen("./test.dat", "rb+");
     int k = 0;
     int i = 0;
+    size_t verify = 0;
     for (k = 0; k < BLOCK_COUNT; k++) {
         fread(cache, sizeof(int), BLOCK_LIMIT, fp);
         for (i = 0; i < BLOCK_LIMIT; i++) {
             if (cache[i] != k * BLOCK_LIMIT + i) {
                 printf("Unexpected: %d\n", k * BLOCK_LIMIT + i);
             }
+            verify += cache[i];
         }
     }
     delete[] cache;
     fclose(fp);
-    printf("FileRWTest succeeds by: k = %d i = %d\n", k, i);
+    printf("FileRWTest succeeds by: k = %d i = %d v = %llu\n", k, i, verify);
 }
 
 int blockCacheTest() {
@@ -83,7 +85,7 @@ int blockCacheTest() {
     fclose(fp);
     delete intBlock;
 
-    fp = fopen("./text.dat", "rb+");
+    fp = fopen("./test.dat", "rb+");
     unsigned long long verify = 0;
     intBlock = new PrimitiveBlock<int>(fp, 0L, 0, BLOCK_LIMIT);
     tracer.startTime();
@@ -99,6 +101,10 @@ int blockCacheTest() {
                 }
             } else {
                 //printf("\t\t%d\n", intBlock->get(i));
+                int val = intBlock->get(i);
+                if (val != k * BLOCK_LIMIT + i) {
+                    printf("\t%d should be %d\n", val, (k * BLOCK_LIMIT + i));
+                }
                 verify += intBlock->get(i);
             }
         }
