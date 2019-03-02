@@ -29,9 +29,9 @@ public:
     PrimitiveBlock(FILE *fp, size_t begin, int count = 0, int limit = 1024) : _cache(new type[count]), _fp(fp),
                                                                               _offset(begin), _count(count),
                                                                               _limit(limit), _cursor(0) {
-        bigseek(fp, 0, SEEK_END);
+        //bigseek(fp, 0, SEEK_END);
         _total = bigtell(fp);
-        bigseek(fp, _offset, SEEK_SET);
+        //bigseek(fp, _offset, SEEK_SET);
     }
 
     void set(int idx, type value) {
@@ -53,10 +53,9 @@ public:
 
     ~PrimitiveBlock() {
         //printf("destructor of PB\n");
-        fflush(_fp);
         if (_cache != nullptr) {
-            delete[] _cache;
-            _cache = nullptr;
+            //delete[] _cache;
+            //_cache = nullptr;
         }
     }
 
@@ -70,7 +69,8 @@ public:
     }
 
     type *loadFromFile() {
-        fread(_cache, sizeof(type), _limit, _fp);
+        size_t rs = fread(_cache, sizeof(type), _limit, _fp);
+        printf("> %llu %llu, %d\n", bigtell(_fp) / sizeof(type), rs, _limit);
         return _cache;
     }
 
@@ -79,7 +79,12 @@ public:
     }
 
     void appendToFile(type *buf) {
+        printf(">\t%llu %llu\n", bigtell(_fp), _offset);
+        for (int i = 0; i < _limit; i++) {
+            //printf("\t\t%d\n", _cache[i]);
+        }
         fwrite(_cache, sizeof(type), _limit, _fp);
+        printf("<\t%llu %llu\n", bigtell(_fp), _offset);
     }
 
     void writeToFile() {
