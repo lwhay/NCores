@@ -7,7 +7,7 @@
 
 using namespace std;
 
-#define BLOCK_COUNT 4
+#define BLOCK_COUNT 1024
 
 #define BLOCK_LIMIT 1024
 
@@ -66,7 +66,7 @@ int fileRWTest() {
 }
 
 int blockCacheTest() {
-    FILE *fp = fopen("./text.dat", "w+");
+    FILE *fp = fopen("./test.dat", "w+");
     PrimitiveBlock<int> *intBlock = new PrimitiveBlock<int>(fp, 0L, 0, BLOCK_LIMIT);
     unsigned long long total = 0;
     Tracer tracer;
@@ -102,7 +102,7 @@ int blockCacheTest() {
                 verify += intBlock->get(i);
             }
         }
-        printf("< v = %d k = %d i = %d\n", intBlock->get(0), k, i);
+        //printf("< v = %d k = %d i = %d\n", intBlock->get(0), k, i);
     }
     intBlock->loadFromFile();
     cout << "Load: " << tracer.getRunTime() << "\t" << total << "<->" << count << "<->" << verify << endl;

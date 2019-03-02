@@ -52,10 +52,9 @@ public:
     }
 
     ~PrimitiveBlock() {
-        //printf("destructor of PB\n");
         if (_cache != nullptr) {
-            //delete[] _cache;
-            //_cache = nullptr;
+            delete[] _cache;
+            _cache = nullptr;
         }
     }
 
@@ -70,7 +69,7 @@ public:
 
     type *loadFromFile() {
         size_t rs = fread(_cache, sizeof(type), _limit, _fp);
-        printf("> %llu %llu, %d\n", bigtell(_fp) / sizeof(type), rs, _limit);
+        //printf("> %llu %llu, %d\n", bigtell(_fp) / sizeof(type), rs, _limit);
         return _cache;
     }
 
@@ -79,12 +78,12 @@ public:
     }
 
     void appendToFile(type *buf) {
-        printf(">\t%llu %llu\n", bigtell(_fp), _offset);
+        /*printf(">\t%llu %llu\n", bigtell(_fp), _offset);
         for (int i = 0; i < _limit; i++) {
-            //printf("\t\t%d\n", _cache[i]);
-        }
+            printf("\t\t%d\n", _cache[i]);
+        }*/
         fwrite(_cache, sizeof(type), _limit, _fp);
-        printf("<\t%llu %llu\n", bigtell(_fp), _offset);
+        //printf("<\t%llu %llu\n", bigtell(_fp), _offset);
     }
 
     void writeToFile() {
