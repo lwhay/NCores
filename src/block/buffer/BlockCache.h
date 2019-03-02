@@ -18,24 +18,17 @@ class PrimitiveBlock
           public CoresBlock<type>,
           public CoresRandomAccesessor<type> {
     type *_cache;
-
     FILE *_fp;
-
     size_t _offset;
-
     int _count;
-
     int _limit;
-
     size_t _cursor;
-
     size_t _total;
 
 public:
-    PrimitiveBlock(FILE *fp, size_t begin, int count = 0, int limit = 1024) : _cache(new int[count]), _fp(fp),
+    PrimitiveBlock(FILE *fp, size_t begin, int count = 0, int limit = 1024) : _cache(new type[count]), _fp(fp),
                                                                               _offset(begin), _count(count),
-                                                                              _limit(limit),
-                                                                              _cursor(0) {
+                                                                              _limit(limit), _cursor(0) {
         bigseek(fp, 0, SEEK_END);
         _total = bigtell(fp);
         bigseek(fp, _offset, SEEK_SET);
@@ -59,8 +52,12 @@ public:
     }
 
     ~PrimitiveBlock() {
-        delete[] _cache;
+        //printf("destructor of PB\n");
         fflush(_fp);
+        if (_cache != nullptr) {
+            delete[] _cache;
+            _cache = nullptr;
+        }
     }
 
     type *readFromFile() {
