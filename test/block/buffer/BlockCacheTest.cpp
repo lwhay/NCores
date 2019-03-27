@@ -26,10 +26,8 @@ int main(int argc, char **argv) {
         int amount = 0;
         int i = 0;
         char *tmp = new char[(int) BLOCK_LIMIT];
-        if (in) // 有该文件
-        {
-            while (getline(in, line)) // line中不包括每行的换行符
-            {
+        if (in) { // File exists
+            while (getline(in, line)) { // For each line
                 if ((length + 1) > BLOCK_LIMIT) {
                     char *str = (char *) (l + i + 1);
                     std::strncpy((char *) str, tmp, amount + 1);
@@ -50,8 +48,7 @@ int main(int argc, char **argv) {
                 }
             }
 
-        } else // 没有该文件
-        {
+        } else { // File not exists.
             cout << "no such file" << endl;
         }
 //
