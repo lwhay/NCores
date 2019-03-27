@@ -209,11 +209,10 @@ int main(int argc, char **argv) {
 //                        }
                     } else {
                         verify = intBlock->get(16 * i);
-                        cout << verify << endl;
                     }
                 }
             }
-            cout << "Load: " << tracer.getRunTime() << "\t" << total << "<->" << count << "<->" << verify << endl;
+            cout << "Load: " << tracer.getRunTime() << "\t" << "<->" << count << "<->" << verify << endl;
             fclose(fp);
             delete intBlock;
         } else if (strcmp(argv[2], "i") == 0) {
