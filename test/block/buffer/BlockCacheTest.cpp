@@ -6,9 +6,9 @@
 
 using namespace std;
 
-//#define BLOCK_COUNT 7680
+#define BLOCK_COUNT 7680
 
-//#define BLOCK_LIMIT 1024*1024
+#define BLOCK_LIMIT 1024*1024
 
 #define FILTERING true
 
