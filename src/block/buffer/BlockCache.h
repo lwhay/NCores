@@ -3,16 +3,44 @@
 #include <iostream>
 #include <fstream>
 #include <limits>
-#include <cassert>
+#include <cstring>
 #include "FileOperations.h"
 #include "CoresIterator.h"
 #include "CoresAppender.h"
 #include "CoresBlock.h"
 #include "CoresRandomAccessor.h"
 
-#define CACHE_VALIDATION 0
-
 using namespace std;
+
+namespace codec {
+    template<class T>
+    void encode(T *_cache, int _idx, T _value) {
+        _cache[_idx] = _value;
+    }
+
+    template<class T>
+    T decode(T *_cache, int _idx) {
+        return _cache[_idx];
+    }
+
+    template<>
+    void encode(char **_cache, int _idx, char *_value) {
+        short *length;
+        length = (short *) ((char *) _cache + _idx);
+        *length = strlen(_value);
+        char *tmp = (char *) length + 2;
+        std::strcpy(tmp, _value);
+    }
+
+    template<>
+    char *decode(char **_cache, int _idx) {
+        char *tmp = (char *) _cache + _idx;
+        short length = *(short *) tmp;
+        tmp += 2;
+        return (char *) _cache;
+    }
+
+}
 
 template<typename type>
 class PrimitiveBlock
@@ -21,44 +49,45 @@ class PrimitiveBlock
           public CoresBlock<type>,
           public CoresRandomAccesessor<type> {
     type *_cache;
+
     FILE *_fp;
+
     size_t _offset;
+
     int _count;
+
     int _limit;
+
     size_t _cursor;
+
     size_t _total;
 
 public:
-    PrimitiveBlock(FILE *fp, size_t begin, int count = 0, int limit = 1024) : _cache(new type[limit]), _fp(fp),
+    PrimitiveBlock(FILE *fp, size_t begin, int count = 0, int limit = 1024) : _cache(
+            (type *) calloc(limit, sizeof(char))), _fp(fp),
                                                                               _offset(begin), _count(count),
-                                                                              _limit(limit), _cursor(0) {
-#if CACHE_VALIDATION
-        int itick = 0;
-        bool validation = true;
-        for (itick = 0; itick < _limit; itick++) {
-            _cache[itick] = itick;
-        }
-        for (itick = 0; itick < _limit; itick++) {
-            if (itick != _cache[itick]) {
-                validation = false;
-            }
-        }
-        assert(validation == true);
-        if (validation) {
-            printf("Cache validation succeeds\n");
-        }
-#endif
+                                                                              _limit(limit / (sizeof(type))),
+                                                                              _cursor(0) {
+        bigseek(fp, 0, SEEK_END);
+        _total = bigtell(fp);
+        bigseek(fp, _offset, SEEK_SET);
+    }
+
+    PrimitiveBlock(FILE *fp, char *cache, int limit = 1024) : _cache(cache), _fp(fp),
+                                                              _offset(0), _count(0),
+                                                              _limit(limit),
+                                                              _cursor(0) {
         bigseek(fp, 0, SEEK_END);
         _total = bigtell(fp);
         bigseek(fp, _offset, SEEK_SET);
     }
 
     void set(int idx, type value) {
-        _cache[idx] = value;
+        codec::encode(_cache, idx, value);
     }
 
     type get(int idx) {
-        return _cache[idx];
+        return codec::decode(_cache, idx);
     }
 
     void append(type value) {
@@ -71,10 +100,8 @@ public:
     }
 
     ~PrimitiveBlock() {
-        if (_cache != nullptr) {
-            delete[] _cache;
-            _cache = nullptr;
-        }
+        delete[] _cache;
+        fflush(_fp);
     }
 
     type *readFromFile() {
@@ -87,8 +114,7 @@ public:
     }
 
     type *loadFromFile() {
-        size_t rs = fread(_cache, sizeof(type), _limit, _fp);
-        //printf("> %llu %llu %llu %d\n", bigtell(_fp), sizeof(type), rs, _limit);
+        fread(_cache, sizeof(type), _limit, _fp);
         return _cache;
     }
 
@@ -97,12 +123,8 @@ public:
     }
 
     void appendToFile(type *buf) {
-        /*printf(">\t%llu %llu\n", bigtell(_fp), _offset);
-        for (int i = 0; i < _limit; i++) {
-            printf("\t\t%d\n", _cache[i]);
-        }*/
-        fwrite(_cache, sizeof(type), _limit, _fp);
-        //printf("<\t%llu %llu %d %llu\n", bigtell(_fp), sizeof(type), _limit, _offset);
+        fwrite(buf, sizeof(type), _limit, _fp);
+        memset(buf, 0, sizeof(type) * _limit);
     }
 
     void writeToFile() {
