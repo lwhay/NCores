@@ -8,6 +8,9 @@ if (CMAKE_BUILD_TYPE STREQUAL Relese)
     set(CMAKE_CXX_FLAGS "$ENV{CXXFLAGS} -O3 -Wall")
 endif ()
 
+include_directories(SYSTEM ${PROJECT_SOURCE_DIR}/third-party/gtest-1.7.0/fused-src)
+add_subdirectory(third-party/gtest-1.7.0/fused-src/gtest)
+
 if ((CMAKE_SYSTEM_NAME MATCHES "Linux") OR (CMAKE_SYSTEM_NAME MATCHES "Darwin"))
     set(PTHREAD -lpthread)
     if (CMAKE_SYSTEM_NAME MATCHES "Linux")
@@ -26,9 +29,6 @@ else ()
     include_directories(${Boost_INCLUDE_DIR})
     link_directories(${Boost_LIBRARY_DIR})
 endif ()
-
-include_directories(SYSTEM ${PROJECT_SOURCE_DIR}/third-party/gtest-1.7.0/fused-src)
-add_subdirectory(third-party/gtest-1.7.0/fused-src/gtest)
 
 find_package(Threads)
 
