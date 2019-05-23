@@ -3,7 +3,7 @@ project(Cores)
 enable_language(CXX)
 enable_language(C)
 enable_language(ASM)
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 17)
 if (CMAKE_BUILD_TYPE STREQUAL Relese)
     set(CMAKE_CXX_FLAGS "$ENV{CXXFLAGS} -O3 -Wall")
 endif ()
@@ -264,6 +264,7 @@ option(WITH_TESTS "build with tests" ON)
 if (WITH_TESTS)
     set(TESTS
             test/metadata/parser/TestTypes.cpp
+            test/metadata/parser/TestSchema.cpp
             test/btree/btreeTestBuild.cpp
             test/btree/btreeTestSearch.cpp
             )
