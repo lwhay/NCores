@@ -28,7 +28,7 @@ public:
     ColumnarFile(string path, BlockManager *blockManager) : filepath(path), bm(blockManager) {}
 
     void create() {
-        assert(filepath != null);
+        //assert(filepath != nullptr);
         /*if (path) {
             filepath = path;
         }*/
@@ -36,7 +36,7 @@ public:
     }
 
     void open() {
-        assert(filepath != null);
+        //assert(filepath != nullptr);
         /*if (path) {
             filepath = path;
         }*/
