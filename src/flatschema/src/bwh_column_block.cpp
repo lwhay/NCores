@@ -536,8 +536,8 @@ Status BwHColumnBlock<CODE_SIZE>::ScanHelper2(const ColumnBlock &column_block,
     assert(column_block.GetCodeSize() == bit_width_);
 
     // Now safe to cast to BwHColumnBlock
-    const BwHColumnBlock <CODE_SIZE> *other_block =
-            static_cast<const BwHColumnBlock <CODE_SIZE> *>(&column_block);
+    const BwHColumnBlock<CODE_SIZE> *other_block =
+            static_cast<const BwHColumnBlock<CODE_SIZE> *>(&column_block);
 
     size_t min_used_words = std::min(num_used_words_,
                                      other_block->num_used_words_);

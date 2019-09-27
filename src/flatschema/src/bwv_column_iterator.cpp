@@ -20,7 +20,7 @@ BwVColumnIterator<CODE_SIZE>::BwVColumnIterator(Column *const column)
     code_id_in_segment_ = 0;
     code_id_in_block_ = 0;
     column_block_id_ = 0;
-    column_block_ = static_cast<BwVColumnBlock <CODE_SIZE> *>(column_
+    column_block_ = static_cast<BwVColumnBlock<CODE_SIZE> *>(column_
             ->GetColumnBlock(column_block_id_));
 }
 
@@ -49,7 +49,7 @@ void BwVColumnIterator<CODE_SIZE>::Seed(TupleId tuple_id) {
         // Move to the next block
         size_t num_blocks = code_id_in_block_ / kNumCodesPerBlock;
         column_block_id_ += num_blocks;
-        column_block_ = static_cast<BwVColumnBlock <CODE_SIZE> *>(column_
+        column_block_ = static_cast<BwVColumnBlock<CODE_SIZE> *>(column_
                 ->GetColumnBlock(column_block_id_));
 
         code_id_in_block_ = code_id_in_block_ % kNumCodesPerBlock;

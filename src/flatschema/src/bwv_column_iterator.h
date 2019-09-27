@@ -75,7 +75,7 @@ private:
     size_t code_id_in_segment_;
     size_t code_id_in_block_;
     size_t column_block_id_;
-    BwVColumnBlock <CODE_SIZE> *column_block_;
+    BwVColumnBlock<CODE_SIZE> *column_block_;
 };
 
 }  // namespace bitweaving

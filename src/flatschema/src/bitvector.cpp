@@ -114,7 +114,7 @@ Status BitVector::GetBit(TupleId bit_id, bool *bit) const {
 /**
  * maxSize = STORE->NUM_POINTS
  */
-void BitVector::toTids(vector <uint32_t> *result, uint32_t maxSize) {
+void BitVector::toTids(vector<uint32_t> *result, uint32_t maxSize) {
 
     result->resize(maxSize);
     uint32_t *result_tids = &((*result)[0]);

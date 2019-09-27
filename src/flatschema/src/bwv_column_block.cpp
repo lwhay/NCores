@@ -14,7 +14,7 @@ template<size_t CODE_SIZE>
 BwVColumnBlock<CODE_SIZE>::BwVColumnBlock()
         : ColumnBlock(kBitWeavingV, CODE_SIZE),
           num_used_words_(0) {
-    memset(data_, 0, sizeof(WordUnit * ) * kMaxNumGroups);
+    memset(data_, 0, sizeof(WordUnit *) * kMaxNumGroups);
     for (size_t group_id = 0; group_id < kNumGroups; group_id++) {
         data_[group_id] = new WordUnit[kNumWords];
         assert(data_[group_id] != NULL);
@@ -611,8 +611,8 @@ Status BwVColumnBlock<CODE_SIZE>::ScanHelper2(const ColumnBlock &column_block,
     assert(column_block.GetCodeSize() == bit_width_);
 
     // Now safe to cast to BwHColumnBlock
-    const BwVColumnBlock <CODE_SIZE> *other_block =
-            static_cast<const BwVColumnBlock <CODE_SIZE> *>(&column_block);
+    const BwVColumnBlock<CODE_SIZE> *other_block =
+            static_cast<const BwVColumnBlock<CODE_SIZE> *>(&column_block);
     WordUnit *const *other_data = other_block->data_;
     for (size_t segment_offset = 0; segment_offset < num_used_words_;
          segment_offset += kNumWordsPerSegment) {
