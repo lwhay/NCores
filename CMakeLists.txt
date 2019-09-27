@@ -10,6 +10,7 @@ endif ()
 
 include_directories(SYSTEM ${PROJECT_SOURCE_DIR}/third-party/gtest-1.7.0/fused-src)
 add_subdirectory(third-party/gtest-1.7.0/fused-src/gtest)
+add_subdirectory("src/flatschema")
 
 if ((CMAKE_SYSTEM_NAME MATCHES "Linux") OR (CMAKE_SYSTEM_NAME MATCHES "Darwin"))
     set(PTHREAD -lpthread)
@@ -247,6 +248,7 @@ if (WITH_SIMD_TESTS)
     set(SIMD_TESTS
             test/osdep/MallocAndBeyondTest.cpp
             test/osdep/SIMDBasisTest.cpp
+            test/osdep/AnyBasicTest.cpp
             )
 endif ()
 
