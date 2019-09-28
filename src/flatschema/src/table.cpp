@@ -273,8 +273,7 @@ Status Table::SaveMetaFile(const std::string &filename) {
     return Status::OK();
 }
 
-Status Table::AddColumn(const std::string &name, ColumnType type,
-                        size_t code_size) {
+Status Table::AddColumn(const std::string &name, ColumnType type, size_t code_size) {
     ColumnId column_id;
     if (rep_->free_column_ids.size() > 0) {
         column_id = rep_->free_column_ids.front();

@@ -23,12 +23,8 @@ namespace bitweaving {
  * @brief Structure for private members of Class Column.
  */
 struct Column::Rep {
-    Rep(Table *table, ColumnId id, ColumnType type, size_t code_size)
-            : table(table),
-              id(id),
-              type(type),
-              code_size(code_size) {
-    }
+    Rep(Table *table, ColumnId id, ColumnType type, size_t code_size) : table(table), id(id), type(type),
+                                                                        code_size(code_size) {}
 
     /**
      * @brief The ID of this column.
@@ -52,13 +48,10 @@ struct Column::Rep {
     std::vector<ColumnBlock *> blocks;
 };
 
-Column::Column(Table *table, ColumnId id, ColumnType type, size_t code_size)
-        : rep_(new Rep(table, id, type, code_size)) {
-}
+Column::Column(Table *table, ColumnId id, ColumnType type, size_t code_size) : rep_(
+        new Rep(table, id, type, code_size)) {}
 
-Column::Column(Table *table, ColumnId id)
-        : rep_(new Rep(table, id, kNaive, 0)) {
-}
+Column::Column(Table *table, ColumnId id) : rep_(new Rep(table, id, kNaive, 0)) {}
 
 Column::~Column() {
     delete rep_;
@@ -99,9 +92,7 @@ Status Column::Bulkload(const Code *codes, size_t num, TupleId pos) {
     size_t num_remain_tuples = num;
     while (num_remain_tuples > 0) {
         assert(block_id < rep_->blocks.size());
-        size_t size = std::min(
-                num_remain_tuples,
-                rep_->blocks[block_id]->GetNumCodes() - code_id_in_block);
+        size_t size = std::min(num_remain_tuples, rep_->blocks[block_id]->GetNumCodes() - code_id_in_block);
         rep_->blocks[block_id]->Bulkload(data_ptr, size, code_id_in_block);
         data_ptr += size;
         num_remain_tuples -= size;
@@ -112,8 +103,7 @@ Status Column::Bulkload(const Code *codes, size_t num, TupleId pos) {
     return Status::OK();
 }
 
-Status Column::Scan(Code literal, Comparator comparator, BitVectorOpt opt,
-                    BitVector *bitvector) const {
+Status Column::Scan(Code literal, Comparator comparator, BitVectorOpt opt, BitVector *bitvector) const {
     Status status;
     for (uint32_t i = 0; i < bitvector->GetNumBitVectorBlock(); i++) {
         if (i < rep_->blocks.size() && rep_->blocks[i] != NULL) {
@@ -131,8 +121,7 @@ Status Column::Scan(Code literal, Comparator comparator, BitVectorOpt opt,
     return Status::OK();
 }
 
-Status Column::Scan_between(Code literal1, Code literal2, BitVectorOpt opt,
-                            BitVector *bitvector) const {
+Status Column::Scan_between(Code literal1, Code literal2, BitVectorOpt opt, BitVector *bitvector) const {
     Status status;
     for (uint32_t i = 0; i < bitvector->GetNumBitVectorBlock(); i++) {
         if (i < rep_->blocks.size() && rep_->blocks[i] != NULL) {
@@ -150,9 +139,7 @@ Status Column::Scan_between(Code literal1, Code literal2, BitVectorOpt opt,
     return Status::OK();
 }
 
-
-Status Column::Scan(const Column &column, Comparator comparator, BitVectorOpt opt,
-                    BitVector *bitvector) const {
+Status Column::Scan(const Column &column, Comparator comparator, BitVectorOpt opt, BitVector *bitvector) const {
     Status status;
     for (uint32_t i = 0; i < rep_->blocks.size(); i++) {
         if (i < rep_->blocks.size() && rep_->blocks[i] != NULL
@@ -454,8 +441,7 @@ ColumnBlock *Column::CreateColumnBlock() const {
                 case 32:
                     return new BwVColumnBlock<32>();
                 default:
-                    std::cerr << "Code size overflow in creating BitWeaving/V block"
-                              << std::endl;
+                    std::cerr << "Code size overflow in creating BitWeaving/V block" << std::endl;
             }
             break;
     }

@@ -10,30 +10,48 @@
 
 using namespace std;
 
-constexpr long total_count(1 << 10);
+constexpr long total_count(1LLU << 30);
 
 void vectorUnits() {
     vector<any> units;
-    vector<int> grounds;
+    vector<long> grounds;
+
+    long counter = 0;
 
     Tracer tracer;
+
+    tracer.startTime();
+    any a;
+    for (long l = 0; l < total_count; l++) {
+        a = l;
+        if (any_cast<long>(a) >= 0) counter++;
+    }
+    cout << "Any dummy:" << tracer.getRunTime() << ":" << counter << endl;
 
     tracer.startTime();
     for (long l = 0; l < total_count; l++) {
         units.push_back(int(l));
     }
-    cout << "Any insert:" << tracer.getRunTime() << endl;
+    cout << "Any insert:" << tracer.getRunTime() << ":" << total_count << endl;
 
     tracer.startTime();
     units.clear();
     cout << "Any clear:" << tracer.getRunTime() << ":" << grounds.size() << endl;
 
+    long ll;
+    counter = 0;
+    tracer.startTime();
+    for (long l = 0; l < total_count; l++) {
+        ll = l;
+        if (ll >= 0) counter++;
+    }
+    cout << "Int dummy:" << tracer.getRunTime() << ":" << counter << endl;
 
     tracer.startTime();
     for (long l = 0; l < total_count; l++) {
         grounds.push_back(static_cast<int>(l));
     }
-    cout << "Int insert:" << tracer.getRunTime() << endl;
+    cout << "Int insert:" << tracer.getRunTime() << ":" << total_count << endl;
 
     tracer.startTime();
     grounds.clear();
@@ -72,6 +90,6 @@ void arrayUnits() {
 }
 
 int main(int argc, char **argv) {
-    //vectorUnits();
-    arrayUnits();
+    vectorUnits();
+    //arrayUnits();
 }

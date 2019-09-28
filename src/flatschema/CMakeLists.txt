@@ -3,9 +3,13 @@ project(BW)
 
 set(SUB_PROJECT_NAME "BW")
 
+include_directories(../../src/utils)
 include_directories(../../third-party/gtest-1.7.0/fused-src)
 include_directories(.)
 include_directories(src)
+
+set(EXT_LIBS
+        ../../src/utils/utils.cpp)
 
 set(BW_LIBS
         src/bitvector.cpp
