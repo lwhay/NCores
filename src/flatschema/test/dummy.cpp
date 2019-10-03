@@ -12,7 +12,7 @@ using namespace std;
 
 using namespace bitweaving;
 
-long total_count = (1 << 29);
+long total_count = (1 << 20);
 
 int isRead = 0;
 
@@ -26,7 +26,7 @@ void tableGenerate() {
     Status status = table->Open();
     status = table->AddColumn("l_orderkey", kNaive, 32);
     Code *firstcol = new Code[total_count];
-    for (int l = 0; l < total_count; l++) {
+    for (long l = 0; l < total_count; l++) {
         firstcol[l] = l;
     }
     Column *fc = table->GetColumn("l_orderkey");

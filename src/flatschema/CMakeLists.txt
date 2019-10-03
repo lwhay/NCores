@@ -3,6 +3,33 @@ project(BW)
 
 set(SUB_PROJECT_NAME "BW")
 
+set(CMAKE_CXX_FLAGS "-msse4.2 ${CMAKE_CXX_FLAGS}")
+
+include(CheckCXXSourceCompiles)
+if (NOT MSVC)
+    set(CMAKE_REQUIRED_FLAGS "-msse4.2 -mpclmul")
+endif ()
+CHECK_CXX_SOURCE_COMPILES("
+#include <cstdint>
+#include <nmmintrin.h>
+#include <wmmintrin.h>
+int main() {
+  volatile uint32_t x = _mm_crc32_u32(0, 0);
+  const auto a = _mm_set_epi64x(0, 0);
+  const auto b = _mm_set_epi64x(0, 0);
+  const auto c = _mm_clmulepi64_si128(a, b, 0x00);
+  auto d = _mm_cvtsi128_si64(c);
+}
+" HAVE_SSE42)
+unset(CMAKE_REQUIRED_FLAGS)
+if (HAVE_SSE42)
+    add_definitions(-DHAVE_SSE42)
+    add_definitions(-DHAVE_PCLMUL)
+    set(ISA_CXXFLAG -m32 -mpclmul)
+elseif (FORCE_SSE42)
+    message(FATAL_ERROR "FORCE_SSE42=ON but unable to compile with SSE4.2 enabled")
+endif ()
+
 include_directories(../../src/utils)
 include_directories(../../third-party/gtest-1.7.0/fused-src)
 include_directories(.)
@@ -32,6 +59,7 @@ set(BW_LIBS
 
 set(BW_TESTS
         test/dummy.cpp
+        test/tpchVerify.cpp
         )
 
 message("Subproject")
