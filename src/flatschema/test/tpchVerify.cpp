@@ -3,6 +3,8 @@
 //
 
 #include <iostream>
+#include "bitweaving/table.h"
+#include "bitweaving/bitvector.h"
 
 #ifdef __SSE2__
 extern "C"
@@ -39,10 +41,47 @@ void simdTest() {}
 #endif
 
 using namespace std;
+using namespace bitweaving;
 
+string tablepath = "./test.db";
 string lineitem_raw = "../../../res/tpch/lineitem.tbl";
+constexpr uint64_t total_count = 128;
+
+Table *table;
+BitVector *bitVector;
+
+void testBitVector() {
+    Options options = Options();
+    options.delete_exist_files = true;
+    table = new Table(tablepath, options);
+    table->Resize(total_count + 16);
+    bitVector = new BitVector(*table);
+    bool isZero;
+
+    bitVector->SetZeros();
+    for (int i = 0; i < total_count + 16; i++) {
+        if (i % 16 == 0) {
+            cout << endl;
+        }
+        bitVector->GetBit(TupleId(i), &isZero);
+        bitVector->SetBit(TupleId(i), true);
+        cout << isZero << " ";
+    }
+    cout << endl;
+
+    //bitVector->SetOnes();
+    for (int i = 0; i < total_count + 16; i++) {
+        if (i % 16 == 0) {
+            cout << endl;
+        }
+        Status status = bitVector->GetBit(TupleId(i), &isZero);
+        cout << isZero << ":" << status.ToString() << " ";
+    }
+    cout << endl;
+}
 
 int main(int argc, char **argv) {
     simdTest();
+    testBitVector();
     return 0;
 }
