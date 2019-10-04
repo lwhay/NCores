@@ -10,7 +10,7 @@
 
 using namespace std;
 
-constexpr long total_count(1LLU << 30);
+constexpr long total_count = (1LLU << 20);
 
 void vectorUnits() {
     vector<any> units;
@@ -57,7 +57,6 @@ void vectorUnits() {
     grounds.clear();
     cout << "Int clear:" << tracer.getRunTime() << ":" << grounds.size() << endl;
 }
-
 
 void arrayUnits() {
     array<any, total_count> units;
