@@ -64,12 +64,21 @@ void testBitVector() {
             cout << endl;
         }
         bitVector->GetBit(TupleId(i), &isZero);
-        bitVector->SetBit(TupleId(i), true);
         cout << isZero << " ";
     }
-    cout << endl;
+    cout << endl << bitVector->GetNumBits() << " " << bitVector->CountOnes() << endl;
 
-    //bitVector->SetOnes();
+    bitVector->SetOnes();
+    for (int i = 0; i < total_count + 16; i++) {
+        if (i % 16 == 0) {
+            cout << endl;
+        }
+        Status status = bitVector->GetBit(TupleId(i), &isZero);
+        cout << isZero << ":" << status.ToString() << " ";
+        bitVector->SetBit(TupleId(i), false);
+    }
+    cout << endl << bitVector->GetNumBits() << " " << bitVector->CountOnes() << endl;
+
     for (int i = 0; i < total_count + 16; i++) {
         if (i % 16 == 0) {
             cout << endl;
@@ -77,7 +86,7 @@ void testBitVector() {
         Status status = bitVector->GetBit(TupleId(i), &isZero);
         cout << isZero << ":" << status.ToString() << " ";
     }
-    cout << endl;
+    cout << endl << bitVector->GetNumBits() << " " << bitVector->CountOnes() << endl;
 }
 
 int main(int argc, char **argv) {
