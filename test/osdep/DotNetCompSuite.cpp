@@ -46,7 +46,7 @@ void DummyHeapCreate(int threadId) {
     heap[threadId] = new DummyHeap *[round];
     for (long r = 0; r < round; r++) {
         heap[threadId][r] = static_cast<DummyHeap *>(malloc(sizeof(DummyHeap) * maxAllocation));
-        for (long i = 0; i < totalRounds / threadNum; i++) {
+        for (long i = 0; i < maxAllocation; i++) {
             heap[threadId][r][i].Initialize(bufferSize);
             if (needInit > 0) std::memset(heap[threadId][r][i].buf, 0x80, bufferSize);
         }
@@ -57,7 +57,7 @@ void DummyHeapAccess(int threadId) {
     long total = totalRounds / threadNum;
     long round = total / maxAllocation;
     for (long r = 0; r < round; r++) {
-        for (long i = 0; i < totalRounds / threadNum; i++) {
+        for (long i = 0; i < maxAllocation; i++) {
             for (int j = 0; j < bufferSize; j++) {
                 heap[threadId][r][i].buf[j] = (uint8_t) i;
             }
