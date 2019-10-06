@@ -249,6 +249,7 @@ if (WITH_SIMD_TESTS)
             test/osdep/MallocAndBeyondTest.cpp
             test/osdep/SIMDBasisTest.cpp
             test/osdep/AnyBasicTest.cpp
+            test/osdep/DotNetCompSuite.cpp
             )
 endif ()
 
@@ -314,7 +315,7 @@ foreach (sourcefile ${SIMD_TEST_EXES})
             EXCLUDE_FROM_DEFAULT_BUILD_RELWITHDEBINFO 1
             OUTPUT_NAME ${exename}${ARTIFACT_SUFFIX}
             )
-    target_link_libraries(${CMAKE_PROJECT_NAME}_${exename}${ARTIFACT_SUFFIX} gtest ${LIBS})
+    target_link_libraries(${CMAKE_PROJECT_NAME}_${exename}${ARTIFACT_SUFFIX} gtest ${LIBS} ${PTHREAD})
     if (NOT "${exename}" MATCHES "db_sanity_test")
         add_test(NAME ${exename} COMMAND ${exename}${ARTIFACT_SUFFIX})
         add_dependencies(check ${CMAKE_PROJECT_NAME}_${exename}${ARTIFACT_SUFFIX})
