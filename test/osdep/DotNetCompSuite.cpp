@@ -76,10 +76,10 @@ void DummyHeapDestroy(int threadId) {
 
 int main(int argc, char **argv) {
     if (argc > 4) {
-        bufferSize = std::atol(argv[0]);
-        totalRounds = std::atol(argv[1]);
-        threadNum = std::atoi(argv[2]);
-        needInit = std::atoi(argv[3]);
+        bufferSize = std::atol(argv[1]);
+        totalRounds = std::atol(argv[2]);
+        threadNum = std::atoi(argv[3]);
+        needInit = std::atoi(argv[4]);
     }
     heap = new DummyHeap **[threadNum];
 
