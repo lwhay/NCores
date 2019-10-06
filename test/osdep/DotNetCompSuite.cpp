@@ -86,6 +86,7 @@ int main(int argc, char **argv) {
         threadNum = std::atoi(argv[3]);
         needInit = std::atoi(argv[4]);
     }
+    cout << "DotNetComp " << bufferSize << " " << totalRounds << " " << threadNum << " " << needInit << endl;
     heap = new DummyHeap **[threadNum];
 
     Tracer tracer;
