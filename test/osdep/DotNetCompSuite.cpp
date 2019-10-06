@@ -11,19 +11,21 @@ using namespace std;
 
 struct DummyHeap {
 public:
-    uint64_t size;
+    uint32_t size;
+    bool onSet;
     uint8_t *buf;
 
 public:
-    DummyHeap(uint64_t size) : size(size), buf(new uint8_t[size]) {}
+    /*DummyHeap() {}*/
 
-    DummyHeap(uint64_t size, bool copyOnWrite) : DummyHeap(size) {
-        std::memset(buf, 0x80, size);
-    }
+    DummyHeap(uint64_t size) : size(size) {}
+
+    DummyHeap(uint64_t size, bool onSet) : DummyHeap(size) { this->onSet = onSet; }
 
     void Initialize(int size) {
         this->size = size;
         this->buf = new uint8_t[size];
+        if (onSet) std::memset(buf, 0x80, size);
     }
 
     ~DummyHeap() {
@@ -46,6 +48,7 @@ void DummyHeapCreate(int threadId) {
     heap[threadId] = new DummyHeap *[round];
     for (long r = 0; r < round; r++) {
         heap[threadId][r] = static_cast<DummyHeap *>(malloc(sizeof(DummyHeap) * maxAllocation));
+        /*heap[threadId][r] = new DummyHeap[maxAllocation];*/
         for (long i = 0; i < maxAllocation; i++) {
             heap[threadId][r][i].Initialize(bufferSize);
             if (needInit > 0) std::memset(heap[threadId][r][i].buf, 0x80, bufferSize);
@@ -69,7 +72,9 @@ void DummyHeapDestroy(int threadId) {
     long total = totalRounds / threadNum;
     long round = total / maxAllocation;
     for (long r = 0; r < round; r++) {
+        for (long i = 0; i < maxAllocation; i++) heap[threadId][r][i].~DummyHeap();
         free(heap[threadId][r]);
+        /*delete[] heap[threadId][r];*/
     }
     delete[] heap[threadId];
 }
