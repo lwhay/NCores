@@ -220,8 +220,8 @@ static void assertType(const Entity &e, EntityType et) {
     }
 }
 
-static vector <uint8_t> toBin(const std::string &s) {
-    vector <uint8_t> result;
+static vector<uint8_t> toBin(const std::string &s) {
+    vector<uint8_t> result;
     result.resize(s.size());
     std::copy(s.c_str(), s.c_str() + s.size(), &result[0]);
     return result;
@@ -261,7 +261,7 @@ static GenericDatum makeGenericDatum(NodePtr n, const Entity &e, const SymbolTab
         case AVRO_RECORD: {
             assertType(e, etObject);
             GenericRecord result(n);
-            const map <string, Entity> &v = e.objectValue();
+            const map<string, Entity> &v = e.objectValue();
             for (size_t i = 0; i < n->leaves(); ++i) {
                 map<string, Entity>::const_iterator it = v.find(n->nameAt(i));
                 if (it == v.end()) {
@@ -354,7 +354,7 @@ static NodePtr makeRecordNode(const Entity &e,
     const Array &v = getArrayField(e, m, "fields");
     MultiAttribute<string> fieldNames;
     MultiAttribute<NodePtr> fieldValues;
-    vector <GenericDatum> defaultValues;
+    vector<GenericDatum> defaultValues;
 
     for (Array::const_iterator it = v.begin(); it != v.end(); ++it) {
         Field f = makeField(*it, st, ns);
@@ -396,7 +396,7 @@ public:
 
 //SchemaResolution resolve(const Node &reader)  const;
 
-//void printJson(std::ostream &os, int depth) const;
+    void printJson(std::ostream &os, int depth) const {}
 
     bool isValid() const {
         return (leafAttributes_.size() == 1);
@@ -404,11 +404,9 @@ public:
 };
 
 
-static NodePtr makeArrayNode(const Entity &e, const Object &m,
-                             SymbolTable &st, const string &ns) {
+static NodePtr makeArrayNode(const Entity &e, const Object &m, SymbolTable &st, const string &ns) {
     Object::const_iterator it = findField(e, m, "items");
-    return NodePtr(new NodeArray(asSingleAttribute(
-            makeNode(it->second, st, ns))));
+    return NodePtr(new NodeArray(asSingleAttribute(makeNode(it->second, st, ns))));
 }
 
 static NodePtr makeNode(const Entity &e, const Object &m,
@@ -467,7 +465,7 @@ void SplitString(const std::string &s, std::vector<std::string> &v, const std::s
 }
 
 void ReadRecord(GenericRecord &record, const std::string &s) {
-    vector <string> v;
+    vector<string> v;
     SplitString(s, v, "|");
     for (vector<string>::size_type i = 0; i != v.size(); ++i) {
         switch (record.fieldAt(i).type()) {
@@ -715,7 +713,7 @@ void testFILE() {
 
 void testFILEWRITER() {
 
-    fstream schema_f("./nest.avsc", schema_f.binary | schema_f.in | schema_f.out);
+    fstream schema_f("../res/schema/nest.avsc", schema_f.binary | schema_f.in | schema_f.out);
     ostringstream buf;
     char ch;
     while (buf && schema_f.get(ch))
@@ -764,7 +762,7 @@ void testFILEWRITER() {
     //initialize the files and variables0
 
     int *strl = new int[culnum];
-    fstream fs("lineitem.tbl", ios::in);
+    fstream fs("../res/tpch/lineitem.tbl", ios::in);
     for (std::string line; std::getline(fs, line);) {
         ReadRecord(*r[0], line);
         RecordWritetoFile(culnum, r[0], index, hindex, offsets, blockcounts, buffers, files,
@@ -809,7 +807,7 @@ void testFILEWRITER() {
 
 void testFileReader() {
 
-    fstream schema_f("./single.avsc", schema_f.binary | schema_f.in | schema_f.out);
+    fstream schema_f("../res/schema/single.avsc", schema_f.binary | schema_f.in | schema_f.out);
     ostringstream buf;
     char ch;
     while (buf && schema_f.get(ch))
@@ -855,7 +853,7 @@ void testFileReader() {
             case AVRO_LONG: {
                 PrimitiveBlock<long> *longBlock = new PrimitiveBlock<long>(fpr, 0L, 0, blocksize);
                 int bcount = headreader->getColumns()[j].getblockCount();
-                vector <BlockReader> brs = headreader->getColumns()[j].getBlocks();
+                vector<BlockReader> brs = headreader->getColumns()[j].getBlocks();
                 Tracer tracer;
                 tracer.startTime();
                 for (int k = 0; k < bcount; k++) {
@@ -1022,7 +1020,7 @@ void filesMerge(string file1, string file2, string path) {
 }
 
 void OLWriter() {
-    fstream schema_f("./nest.avsc", schema_f.binary | schema_f.in | schema_f.out);
+    fstream schema_f("../res/schema/nest.avsc", schema_f.binary | schema_f.in | schema_f.out);
     ostringstream buf;
     char ch;
     while (buf && schema_f.get(ch))
@@ -1053,7 +1051,7 @@ void OLWriter() {
     string oline;
     getline(od, oline);
     order.readLine(oline);
-    vector <GenericDatum> tmp_arr;
+    vector<GenericDatum> tmp_arr;
     for (; std::getline(li, lline);) {
         lineitmes.readLine(lline);
         while (order.getInd(0) < lineitmes.getInd(0)) {
@@ -1204,7 +1202,8 @@ void COfilesMerge(string file1, string file2, string file3, string path) {
 
 
 void COLWriter() {
-    fstream schema_f("./customer/nest.avsc", schema_f.binary | schema_f.in | schema_f.out);
+    //fstream schema_f("../res/schema/customer/nest.avsc", schema_f.binary | schema_f.in | schema_f.out);
+    fstream schema_f("../res/schema/nest.avsc", schema_f.binary | schema_f.in | schema_f.out);
     ostringstream buf;
     char ch;
     while (buf && schema_f.get(ch))
@@ -1230,8 +1229,8 @@ void COLWriter() {
     fileReader fr(c, 1024);
     c = GenericDatum(r[1]->fieldAt(9).value<GenericArray>().schema()->leafAt(0));
     BatchFileWriter lineitem(c, "./lineitem", 1024);
-    vector <GenericDatum> blank;
-    vector <vector<GenericDatum>> tmpa;
+    vector<GenericDatum> blank;
+    vector<vector<GenericDatum>> tmpa;
     vector<int> r1;
     for (int i = 0; i < 10; i++) {
         r1.push_back(i);
@@ -1249,7 +1248,7 @@ void COLWriter() {
         }
         tmpa[custkey - 1].push_back(GenericDatum(tmp));
     }
-    fstream ct("customer.tbl", ios::in);
+    fstream ct("../res/tpch/customer.tbl", ios::in);
     string cline;
     for (; std::getline(ct, cline);) {
         customer.readLine(cline);
@@ -1399,7 +1398,7 @@ void NestedReader(string datafile, string schemafile) {
                     int arrsize = blockreaders[i]->next<int>();
                     rind[i]++;
                     cout << arrsize << endl;
-                    vector <GenericDatum> records;
+                    vector<GenericDatum> records;
                     for (int j = 0; j < arrsize; ++j) {
                         int k = 0;
                         if (k != 0) {
@@ -1489,7 +1488,7 @@ void NestedReader(string datafile, string schemafile) {
 }
 
 void nextReader() {
-    fstream schema_f("./nest.avsc", schema_f.binary | schema_f.in | schema_f.out);
+    fstream schema_f("../res/schema/nest.avsc", schema_f.binary | schema_f.in | schema_f.out);
     ostringstream buf;
     char ch;
     while (buf && schema_f.get(ch))
@@ -1509,13 +1508,13 @@ void nextReader() {
     GenericRecord tmp = fr.getRecord();
     cout << tmp.fieldAt(0).value<long>() << " ";
     cout << tmp.fieldAt(1).value<long>() << endl;
-    vector <GenericDatum> tmparr = tmp.fieldAt(9).value<GenericArray>().value();
+    vector<GenericDatum> tmparr = tmp.fieldAt(9).value<GenericArray>().value();
     for (auto inter:tmparr) {
         cout << inter.value<GenericRecord>().fieldAt(0).value<long>() << " ";
     }
     cout << endl;
-    vector <GenericDatum> blank;
-    vector <vector<GenericDatum>> tmpa;
+    vector<GenericDatum> blank;
+    vector<vector<GenericDatum>> tmpa;
     int custkey = tmp.fieldAt(1).value<long>();
     if (custkey > tmpa.size()) {
         tmpa.resize(custkey, blank);
@@ -1655,7 +1654,7 @@ void LReader(string datafile, string schemafile, vector<int> rv) {
 
 
 void fileTest() {
-    fstream schema_f("./nest.avsc", schema_f.binary | schema_f.in | schema_f.out);
+    fstream schema_f("../res/schema/nest.avsc", schema_f.binary | schema_f.in | schema_f.out);
     ostringstream buf;
     char ch;
     while (buf && schema_f.get(ch))
