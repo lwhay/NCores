@@ -7,12 +7,13 @@
 
 using namespace std;
 
+class GenericRecord;
 
 inline NodePtr resolveSymbol(const NodePtr &node) {
     if (node->type() != AVRO_SYMBOLIC) {
         //throw Exception("Only symbolic nodes may be resolved");
     }
-    std::shared_ptr <NodeSymbolic> symNode = std::static_pointer_cast<NodeSymbolic>(node);
+    std::shared_ptr<NodeSymbolic> symNode = std::static_pointer_cast<NodeSymbolic>(node);
     return symNode->getNode();
 }
 
@@ -89,6 +90,8 @@ public:
     /// Makes a new AVRO_LONG datum whose value is of type int64_t.
     GenericDatum(int64_t v) : type_(AVRO_LONG), value_(v) {}
 
+    GenericDatum(long v) : type_(AVRO_LONG), value_(v) {}
+
     /// Makes a new AVRO_FLOAT datum whose value is of type float.
     GenericDatum(float v) : type_(AVRO_FLOAT), value_(v) {}
 
@@ -100,8 +103,16 @@ public:
 
     /// Makes a new AVRO_BYTES datum whose value is of type
     /// std::vector<uint8_t>.
-    GenericDatum(const std::vector <uint8_t> &v) :
+    GenericDatum(const std::vector<uint8_t> &v) :
             type_(AVRO_BYTES), value_(v) {}
+
+    GenericDatum(char v) :
+            type_(AVRO_BYTES), value_(v) {}
+
+
+    GenericDatum(GenericRecord *v);
+
+    GenericDatum(GenericRecord v);
 
     /**
      * Constructs a datum corresponding to the given avro type.
@@ -203,7 +214,7 @@ public:
 };
 
 class GenericRecord : public GenericContainer {
-    std::vector <GenericDatum> fields_;
+    std::vector<GenericDatum> fields_;
 public:
 /**
  * Constructs a generic record corresponding to the given schema \p schema,
@@ -288,7 +299,7 @@ public:
 /**
  * The contents type for the array.
  */
-    typedef std::vector <GenericDatum> Value;
+    typedef std::vector<GenericDatum> Value;
 
 /**
  * Constructs a generic array corresponding to the given schema \p schema,
@@ -316,7 +327,7 @@ private:
 };
 
 class GenericFixed : public GenericContainer {
-    std::vector <uint8_t> value_;
+    std::vector<uint8_t> value_;
 public:
 /**
  * Constructs a generic enum corresponding to the given schema \p schema,
@@ -326,23 +337,33 @@ public:
         value_.resize(schema->fixedSize());
     }
 
-    GenericFixed(const NodePtr &schema, const std::vector <uint8_t> &v) :
+    GenericFixed(const NodePtr &schema, const std::vector<uint8_t> &v) :
             GenericContainer(AVRO_FIXED, schema), value_(v) {}
 
 /**
  * Returns the contents of this fixed.
  */
-    const std::vector <uint8_t> &value() const {
+    const std::vector<uint8_t> &value() const {
         return value_;
     }
 
 /**
  * Returns the reference to the contents of this fixed.
  */
-    std::vector <uint8_t> &value() {
+    std::vector<uint8_t> &value() {
         return value_;
     }
 };
+
+GenericDatum::GenericDatum(GenericRecord *v) {
+    type_ = AVRO_RECORD;
+    value_ = *v;
+}
+
+GenericDatum::GenericDatum(GenericRecord v) {
+    type_ = AVRO_RECORD;
+    value_ = v;
+}
 
 void GenericDatum::init(const NodePtr &schema) {
     NodePtr sc = schema;

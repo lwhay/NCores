@@ -137,6 +137,7 @@ endif ()
 
 include_directories(src)
 include_directories(src/io/codec)
+include_directories(src/io/file)
 include_directories(src/osdep)
 include_directories(src/btree)
 include_directories(src/bloom)
