@@ -163,7 +163,7 @@ public:
 
 //virtual SchemaResolution resolve(const Node &reader) const = 0;
 
-    virtual void printJson(std::ostream &os, int depth) const = 0;
+//    virtual void printJson(std::ostream &os, int depth) const = 0;
 
     virtual void printBasicInfo(std::ostream &os) const = 0;
 
@@ -627,6 +627,7 @@ public:
         return defaultValues[index];
     }
 };
+
 
 class NodeFixed : public NodeImplFixed {
 public:

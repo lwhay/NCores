@@ -1200,10 +1200,9 @@ void COfilesMerge(string file1, string file2, string file3, string path) {
 
 }
 
-
 void COLWriter() {
     //fstream schema_f("../res/schema/customer/nest.avsc", schema_f.binary | schema_f.in | schema_f.out);
-    fstream schema_f("../res/schema/nest.avsc", schema_f.binary | schema_f.in | schema_f.out);
+    fstream schema_f("../res/schema/custom/nest.avsc", schema_f.binary | schema_f.in | schema_f.out);
     ostringstream buf;
     char ch;
     while (buf && schema_f.get(ch))
