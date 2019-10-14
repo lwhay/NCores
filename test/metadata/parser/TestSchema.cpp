@@ -1045,8 +1045,8 @@ void OLWriter() {
     c = GenericDatum(r[0]->fieldAt(9).value<GenericArray>().schema()->leafAt(0));
     BatchFileWriter lineitmes(c, "./lineitem", 1024);
     r[1] = new GenericRecord(c.value<GenericRecord>());
-    fstream li("lineitem.tbl", ios::in);
-    fstream od("orders.tbl", ios::in);
+    fstream li("../res/tpch/lineitem.tbl", ios::in);
+    fstream od("../res/tpch/orders.tbl", ios::in);
     string lline;
     string oline;
     getline(od, oline);
@@ -1201,7 +1201,6 @@ void COfilesMerge(string file1, string file2, string file3, string path) {
 }
 
 void COLWriter() {
-    //fstream schema_f("../res/schema/customer/nest.avsc", schema_f.binary | schema_f.in | schema_f.out);
     fstream schema_f("../res/schema/custom/nest.avsc", schema_f.binary | schema_f.in | schema_f.out);
     ostringstream buf;
     char ch;
@@ -1714,7 +1713,7 @@ void fileTest() {
 int main() {
 //    testFILEWRITER();
 //    testFileReader();
-//    OLWriter();
+    OLWriter();
 //    NestedReader("./fileout.dat","./nest.avsc");
 //    nextReader();
 //    vector<int> tmp;
