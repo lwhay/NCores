@@ -1045,36 +1045,44 @@ void OLWriter() {
     c = GenericDatum(r[0]->fieldAt(9).value<GenericArray>().schema()->leafAt(0));
     BatchFileWriter lineitmes(c, "./lineitem", 1024);
     r[1] = new GenericRecord(c.value<GenericRecord>());
-    fstream li("../res/tpch/lineitem.tbl", ios::in);
-    fstream od("../res/tpch/orders.tbl", ios::in);
+    fstream li("./lineitem.tbl", ios::in);
+    fstream od("./orders.tbl", ios::in);
     string lline;
     string oline;
     getline(od, oline);
     order.readLine(oline);
     vector<GenericDatum> tmp_arr;
     for (; std::getline(li, lline);) {
+//cout<<"lr"<<endl;
         lineitmes.readLine(lline);
         while (order.getInd(0) < lineitmes.getInd(0)) {
             order.setArr(9, tmp_arr);
             tmp_arr.clear();
+//cout<<"ow"<<endl;
             order.writeRecord();
             getline(od, oline);
+//cout<<"or"<<endl;
             order.readLine(oline);
         }
 //            while(order.getInd(1)==lineitmes.getInd(1)) {
 //                lineitmes.writeRecord();
 //                tmp_arr.push_back(GenericDatum(lineitmes.getRecord()));
 //            }
+//cout<<"lw"<<endl;
         lineitmes.writeRecord();
+//cout<<"lg"<<endl;
         GenericRecord tmpRe = lineitmes.getRecord();
+//cout<<"pb"<<endl;
         tmp_arr.push_back(GenericDatum(&tmpRe));
     }
+//cout<<"wr"<<endl;
     order.writeRest();
     lineitmes.writeRest();
+//cout<<"mf"<<endl;
     order.mergeFiles();
     lineitmes.mergeFiles();
 
-    filesMerge("./orders", "./lineitem", "./result1");
+    filesMerge("./orders", "./lineitem", ".");
 }
 
 void COfilesMerge(string file1, string file2, string file3, string path) {
@@ -1680,7 +1688,7 @@ void fileTest() {
     FILE *fpr = fopen("./fileout.dat", "rb");
     FILE *_fpr = fopen("./fileout.dat", "rb");
     int count = 0;
-    int i = 25;
+    int i = 1;
     long off = headreader->getColumns()[i].getOffset();
     fseek(fpr, off, SEEK_SET);
     fseek(_fpr, headreader->getColumns()[0].getOffset(), SEEK_SET);
@@ -1688,25 +1696,22 @@ void fileTest() {
 
     Block *stringBlock = new Block(fpr, 0L, 0, 1024);
     Block *keyBlock = new Block(_fpr, 0L, 0, 1024);
-    for (int k = 0; k < 5; k++) {
+    for (int k = 0; ; k++) {
         stringBlock->loadFromFile();
         keyBlock->loadFromFile();
-        int rcount = headreader->getColumns()[i].getBlocks()[k].getRowcount();
+        int rcount = headreader->getColumn(i).getBlock(k).getRowcount();
         for (int i = 0; i < rcount; i++) {
-            char *key = stringBlock->next<char *>();
-            int tmp = keyBlock->next<int>();
+            long key = stringBlock->next<long>();
+         //   long tmp = keyBlock->next<long>();
             count++;
-            cout << key << " " << tmp << endl;
+//            cout << key << " " << tmp << endl;
         }
         stringBlock->loadFromFile();
-        cout << endl;
+       // cout << endl;
     }
     delete stringBlock;
 
 
-//    PrimitiveBlock<long> *intBlock = new PrimitiveBlock<long>(fpr, 0L, 0, 1024);
-//    intBlock->loadFromFile();
-//    cout<<intBlock->get(3);
 }
 
 
@@ -1724,6 +1729,6 @@ int main() {
 //    LReader("./fileout.dat","./nest.avsc",tmp);
 //    fileTest();
 //    filesMerge("./orders","./lineitem",".");
-    COLWriter();
+//    COLWriter();
     return 0;
 }

@@ -1,5 +1,6 @@
 //
 // Created by Vince Tu on 2019/9/1.
+// ckReader(istream 
 //
 
 #ifndef CORES_BATCHFILEWRITER_H
@@ -249,7 +250,7 @@ public:
     void readLine(string line) {
         vector<string> v;
         SplitString(line, v, "|");
-        for (vector<string>::size_type i = 0; i != v.size(); ++i) {
+        for (int i = 0; i < column_num; ++i) {
             switch (record->fieldAt(i).type()) {
                 case AVRO_INT: {
                     int tmp = stoi(v[i]);
