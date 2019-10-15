@@ -712,7 +712,6 @@ void testFILE() {
 }
 
 void testFILEWRITER() {
-
     fstream schema_f("../res/schema/nest.avsc", schema_f.binary | schema_f.in | schema_f.out);
     ostringstream buf;
     char ch;
@@ -806,7 +805,6 @@ void testFILEWRITER() {
 }
 
 void testFileReader() {
-
     fstream schema_f("../res/schema/single.avsc", schema_f.binary | schema_f.in | schema_f.out);
     ostringstream buf;
     char ch;
@@ -1016,10 +1014,9 @@ void filesMerge(string file1, string file2, string path) {
     }
     fflush(fp);
     fclose(fp);
-
 }
 
-void OLWriter() {
+void OLWriter(char *lineitemPath = "../res/tpch/lineitem.tbl", char *ordersPath = "../res/tpch/orders.tbl") {
     fstream schema_f("../res/schema/nest.avsc", schema_f.binary | schema_f.in | schema_f.out);
     ostringstream buf;
     char ch;
@@ -1045,8 +1042,8 @@ void OLWriter() {
     c = GenericDatum(r[0]->fieldAt(9).value<GenericArray>().schema()->leafAt(0));
     BatchFileWriter lineitmes(c, "./lineitem", 1024);
     r[1] = new GenericRecord(c.value<GenericRecord>());
-    fstream li("./lineitem.tbl", ios::in);
-    fstream od("./orders.tbl", ios::in);
+    fstream li(lineitemPath, ios::in);
+    fstream od(ordersPath, ios::in);
     string lline;
     string oline;
     getline(od, oline);
@@ -1205,7 +1202,6 @@ void COfilesMerge(string file1, string file2, string file3, string path) {
     }
     fflush(fp);
     fclose(fp);
-
 }
 
 void COLWriter() {
@@ -1490,7 +1486,6 @@ void NestedReader(string datafile, string schemafile) {
     for (int i1 = 0; i1 < 26; ++i1) {
         fclose(fpp[i1]);
     }
-
 }
 
 void nextReader() {
@@ -1655,9 +1650,7 @@ void LReader(string datafile, string schemafile, vector<int> rv) {
     for (int i1 = 0; i1 < 16; ++i1) {
         fclose(fpp[i1]);
     }
-
 }
-
 
 void fileTest() {
     fstream schema_f("../res/schema/nest.avsc", schema_f.binary | schema_f.in | schema_f.out);
@@ -1696,29 +1689,29 @@ void fileTest() {
 
     Block *stringBlock = new Block(fpr, 0L, 0, 1024);
     Block *keyBlock = new Block(_fpr, 0L, 0, 1024);
-    for (int k = 0; ; k++) {
+    for (int k = 0;; k++) {
         stringBlock->loadFromFile();
         keyBlock->loadFromFile();
         int rcount = headreader->getColumn(i).getBlock(k).getRowcount();
         for (int i = 0; i < rcount; i++) {
             long key = stringBlock->next<long>();
-         //   long tmp = keyBlock->next<long>();
+            //   long tmp = keyBlock->next<long>();
             count++;
 //            cout << key << " " << tmp << endl;
         }
         stringBlock->loadFromFile();
-       // cout << endl;
+        // cout << endl;
     }
     delete stringBlock;
-
-
 }
 
-
-int main() {
+int main(int argc, char **argv) {
+    if (argc > 3) {
+        OLWriter(argv[1], argv[2]);
+    } else {
 //    testFILEWRITER();
 //    testFileReader();
-    OLWriter();
+        OLWriter();
 //    NestedReader("./fileout.dat","./nest.avsc");
 //    nextReader();
 //    vector<int> tmp;
@@ -1730,5 +1723,6 @@ int main() {
 //    fileTest();
 //    filesMerge("./orders","./lineitem",".");
 //    COLWriter();
+    }
     return 0;
 }
