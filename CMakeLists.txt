@@ -484,22 +484,26 @@ if (WITH_ARROW)
             GIT_TAG master
             INSTALL_COMMAND ""
             # Tell CMake to use subdirectory as source.
+            CMAKE_ARGS -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
             CONFIGURE_COMMAND ${CMAKE_COMMAND} -DCMAKE_INSTALL_PREFIX:PATH=/usr/local ${ARROW_PREFIX}/src/arrow/cpp
             BUILD_COMMAND $(MAKE)
-            CMAKE_ARGS -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
             LOG_DOWNLOAD ON
             LOG_CONFIGURE ON
             LOG_BUILD ON
             )
 
     include_directories(
-            ${ARROW_PREFIX}/src/arrow/cpp
-            ${ARROW_PREFIX}/src/arrow-build
+            test/arrow/unit
+            ${ARROW_PREFIX}/src/arrow/cpp/src
+            ${ARROW_PREFIX}/src/arrow/cpp/src/arrow
+            ${ARROW_PREFIX}/src/arrow/cpp/src/parquet
+            ${ARROW_PREFIX}/src/arrow-build/src
     )
 
-    link_directories(${ARROW_PREFIX}/src/arrow-build/)
+    link_directories(${ARROW_PREFIX}/src/arrow-build/release)
 
     set(ARROW_TEST
+            test/arrow/unit/ArrowDummy.cpp
             )
 
     foreach (sourcefile ${ARROW_TEST})
@@ -511,6 +515,6 @@ if (WITH_ARROW)
                 EXCLUDE_FROM_DEFAULT_BUILD_RELWITHDEBINFO 1
                 OUTPUT_NAME ${exename}${ARTIFACT_SUFFIX}
                 )
-        target_link_libraries(${CMAKE_PROJECT_NAME}_${exename}${ARTIFACT_SUFFIX} gtest -larrow)
+        target_link_libraries(${CMAKE_PROJECT_NAME}_${exename}${ARTIFACT_SUFFIX} gtest -larrow ${PTHREAD})
     endforeach (sourcefile ${ARROW_TEST})
 endif ()
