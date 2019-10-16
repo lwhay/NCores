@@ -90,7 +90,11 @@ public:
     /// Makes a new AVRO_LONG datum whose value is of type int64_t.
     GenericDatum(int64_t v) : type_(AVRO_LONG), value_(v) {}
 
-    //GenericDatum(long v) : type_(AVRO_LONG), value_(v) {}
+#ifdef __APPLE__
+
+    GenericDatum(long v) : type_(AVRO_LONG), value_(v) {}
+
+#endif
 
     /// Makes a new AVRO_FLOAT datum whose value is of type float.
     GenericDatum(float v) : type_(AVRO_FLOAT), value_(v) {}

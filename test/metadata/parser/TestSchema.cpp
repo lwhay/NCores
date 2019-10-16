@@ -1711,15 +1711,15 @@ int main(int argc, char **argv) {
     } else {
 //    testFILEWRITER();
 //    testFileReader();
-        OLWriter();
+//    OLWriter();
 //    NestedReader("./fileout.dat","./nest.avsc");
 //    nextReader();
-//    vector<int> tmp;
-//    for (int i=0;i<16;i++){
-//        tmp.push_back(i);
-//    }
-//
-//    LReader("./fileout.dat","./nest.avsc",tmp);
+        vector<int> tmp;
+        for (int i = 0; i < 16; i++) {
+            tmp.push_back(i);
+        }
+
+        LReader("./fileout.dat", "../res/schema/nest.avsc", tmp);
 //    fileTest();
 //    filesMerge("./orders","./lineitem",".");
 //    COLWriter();
