@@ -515,6 +515,7 @@ if (WITH_ARROW)
                 EXCLUDE_FROM_DEFAULT_BUILD_RELWITHDEBINFO 1
                 OUTPUT_NAME ${exename}${ARTIFACT_SUFFIX}
                 )
+        add_dependencies(${CMAKE_PROJECT_NAME}_${exename}${ARTIFACT_SUFFIX} arrow)
         target_link_libraries(${CMAKE_PROJECT_NAME}_${exename}${ARTIFACT_SUFFIX} gtest -larrow ${PTHREAD})
     endforeach (sourcefile ${ARROW_TEST})
 endif ()
