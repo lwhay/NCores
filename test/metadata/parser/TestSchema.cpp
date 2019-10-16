@@ -1572,7 +1572,10 @@ void LReader(string datafile, string schemafile, vector<int> rv) {
     long key;
     long max = headreader->getColumn(10).getblockCount();
 
+    Tracer tracer;
+    tracer.startTime();
 //    orderkey=blockreaders[i]->get<long>(rind[i]);
+    int last = bind[0];
     for (; bind[0] < max;) {
         for (int i :rv) {
             switch (r[1]->fieldAt(i).type()) {
@@ -1645,6 +1648,10 @@ void LReader(string datafile, string schemafile, vector<int> rv) {
             if (i == 15) {
                 //cout << endl;
             }
+        }
+        if (bind[0] != last && bind[0] % 1000 == 0) {
+            cout << bind[0] << ":" << tracer.getRunTime() << endl;
+            last = bind[0];
         }
     }
     for (int i1 = 0; i1 < 16; ++i1) {
@@ -1719,10 +1726,7 @@ int main(int argc, char **argv) {
             tmp.push_back(i);
         }
 
-        Tracer tracer;
-        tracer.startTime();
         LReader("./fileout.dat", "../res/schema/nest.avsc", tmp);
-        cout << tracer.getRunTime() << endl;
 //    fileTest();
 //    filesMerge("./orders","./lineitem",".");
 //    COLWriter();
