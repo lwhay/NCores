@@ -1585,7 +1585,7 @@ void LReader(string datafile, string schemafile, vector<int> rv) {
                     }
                     long tmp = blockreaders[i]->next<long>();
                     r[1]->fieldAt(i) = tmp;
-                    cout << tmp << " ";
+                    //cout << tmp << " ";
                     rind[i]++;
                     break;
                 }
@@ -1598,7 +1598,7 @@ void LReader(string datafile, string schemafile, vector<int> rv) {
                     }
                     int tmp = blockreaders[i]->next<int>();
                     r[1]->fieldAt(i) = tmp;
-                    cout << tmp << " ";
+                    //cout << tmp << " ";
                     rind[i]++;
                     break;
                 }
@@ -1611,7 +1611,7 @@ void LReader(string datafile, string schemafile, vector<int> rv) {
                     }
                     string tmp = blockreaders[i]->next<char *>();
                     r[1]->fieldAt(i) = tmp;
-                    cout << tmp << " ";
+                    //cout << tmp << " ";
                     rind[i]++;
                     break;
                 }
@@ -1624,7 +1624,7 @@ void LReader(string datafile, string schemafile, vector<int> rv) {
                     }
                     float tmp = blockreaders[i]->next<float>();
                     r[1]->fieldAt(i) = tmp;
-                    cout << tmp << " ";
+                    //cout << tmp << " ";
                     rind[i]++;
                     break;
                 }
@@ -1637,13 +1637,13 @@ void LReader(string datafile, string schemafile, vector<int> rv) {
                     }
                     char tmp = blockreaders[i]->next<char>();
                     r[1]->fieldAt(i) = tmp;
-                    cout << tmp << " ";
+                    //cout << tmp << " ";
                     rind[i]++;
                     break;
                 }
             }
             if (i == 15) {
-                cout << endl;
+                //cout << endl;
             }
         }
     }
@@ -1719,7 +1719,10 @@ int main(int argc, char **argv) {
             tmp.push_back(i);
         }
 
+        Tracer tracer;
+        tracer.startTime();
         LReader("./fileout.dat", "../res/schema/nest.avsc", tmp);
+        cout << tracer.getRunTime() << endl;
 //    fileTest();
 //    filesMerge("./orders","./lineitem",".");
 //    COLWriter();
