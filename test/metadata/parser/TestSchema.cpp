@@ -1326,19 +1326,30 @@ void NestedReader(string datafile, string schemafile) {
         blockreaders[j] = new Block(fpp[j], 0L, 0, blocksize);
         blockreaders[j]->loadFromFile();
     }
+
+    vector<int> r1;
+    for (int i=0;i<10;i++){
+        r1.push_back(i);
+    }
+
+    vector<int> r2;
+    for (int i=10;i<26;i++){
+        r2.push_back(i);
+    }
+
     for (int k1 = 0; k1 < headreader->getRowCount(); ++k1) {
-        for (int i :{0, 2, 9}) {
+        for (int i :r1) {
             switch (r[0]->fieldAt(i).type()) {
                 case AVRO_LONG: {
                     if (rind[i] == rcounts[i]) {
                         blockreaders[i]->loadFromFile();
                         rind[i] = 0;
-                        rcounts[i] = headreader->getColumns()[i].getBlock(bind[i]).getRowcount();
+                        rcounts[i] = headreader->getColumn(i).getBlock(bind[i]).getRowcount();
                         bind[i]++;
                     }
                     long tmp = blockreaders[i]->next<long>();
                     r[0]->fieldAt(i) = tmp;
-                    cout << tmp << " ";
+                    //cout << tmp << " ";
                     rind[i]++;
                     break;
                 }
@@ -1346,12 +1357,12 @@ void NestedReader(string datafile, string schemafile) {
                     if (rind[i] == rcounts[i]) {
                         blockreaders[i]->loadFromFile();
                         rind[i] = 0;
-                        rcounts[i] = headreader->getColumns()[i].getBlock(bind[i]).getRowcount();
-                        bind[i]++;
+                        rcounts[i] = headreader->getColumn(i).getBlock(bind[i]).getRowcount();
+			bind[i]++;
                     }
                     int tmp = blockreaders[i]->next<int>();
                     r[0]->fieldAt(i) = tmp;
-                    cout << tmp << " ";
+                    //cout << tmp << " ";
                     rind[i]++;
                     break;
                 }
@@ -1359,12 +1370,12 @@ void NestedReader(string datafile, string schemafile) {
                     if (rind[i] == rcounts[i]) {
                         blockreaders[i]->loadFromFile();
                         rind[i] = 0;
-                        rcounts[i] = headreader->getColumns()[i].getBlock(bind[i]).getRowcount();
-                        bind[i]++;
+                        rcounts[i] = headreader->getColumn(i).getBlock(bind[i]).getRowcount();
+			bind[i]++;
                     }
                     string tmp = blockreaders[i]->next<char *>();
                     r[0]->fieldAt(i) = tmp;
-                    cout << tmp << " ";
+                    //cout << tmp << " ";
                     rind[i]++;
                     break;
                 }
@@ -1372,12 +1383,12 @@ void NestedReader(string datafile, string schemafile) {
                     if (rind[i] == rcounts[i]) {
                         blockreaders[i]->loadFromFile();
                         rind[i] = 0;
-                        rcounts[i] = headreader->getColumns()[i].getBlock(bind[i]).getRowcount();
+                        rcounts[i] = headreader->getColumn(i).getBlock(bind[i]).getRowcount();
                         bind[i]++;
                     }
                     float tmp = blockreaders[i]->next<float>();
                     r[0]->fieldAt(i) = tmp;
-                    cout << tmp << " ";
+                    //cout << tmp << " ";
                     rind[i]++;
                     break;
                 }
@@ -1385,12 +1396,12 @@ void NestedReader(string datafile, string schemafile) {
                     if (rind[i] == rcounts[i]) {
                         blockreaders[i]->loadFromFile();
                         rind[i] = 0;
-                        rcounts[i] = headreader->getColumns()[i].getBlock(bind[i]).getRowcount();
+                        rcounts[i] = headreader->getColumn(i).getBlock(bind[i]).getRowcount();
                         bind[i]++;
                     }
                     char tmp = blockreaders[i]->next<char>();
                     r[0]->fieldAt(i) = tmp;
-                    cout << tmp << " ";
+                    //cout << tmp << " ";
                     rind[i]++;
                     break;
                 }
@@ -1398,27 +1409,25 @@ void NestedReader(string datafile, string schemafile) {
                     if (rind[i] == rcounts[i]) {
                         blockreaders[i]->loadFromFile();
                         rind[i] = 0;
-                        rcounts[i] = headreader->getColumns()[i].getBlock(bind[i]).getRowcount();
+                        rcounts[i] = headreader->getColumn(i).getBlock(bind[i]).getRowcount();
                         bind[i]++;
                     }
                     int arrsize = blockreaders[i]->next<int>();
                     rind[i]++;
-                    cout << arrsize << endl;
+                    //cout << arrsize << endl;
                     vector<GenericDatum> records;
                     for (int j = 0; j < arrsize; ++j) {
-                        int k = 0;
-                        if (k != 0) {
+                        for(int k:r2) {
                             switch (r[1]->fieldAt(k - 10).type()) {
                                 case AVRO_LONG: {
-                                    if (rind[k] == rcounts[k]) {
+				   if(rind[k]==rcounts[k]){
                                         blockreaders[k]->loadFromFile();
                                         rind[k] = 0;
-                                        rcounts[k] = headreader->getColumns()[k].getBlock(bind[k]).getRowcount();
-                                        bind[k]++;
-                                    }
-                                    long tmp = blockreaders[k]->next<long>();
+                                        rcounts[k] = headreader->getColumn(k).getBlock(bind[k]).getRowcount();
+                                        bind[k]++;}
+				    long tmp=blockreaders[k]->next<long>();
                                     r[1]->fieldAt(k - 10) = tmp;
-                                    cout << tmp << " ";
+                                    //cout << tmp << " ";
                                     rind[k]++;
                                     break;
                                 }
@@ -1426,12 +1435,12 @@ void NestedReader(string datafile, string schemafile) {
                                     if (rind[k] == rcounts[k]) {
                                         blockreaders[k]->loadFromFile();
                                         rind[k] = 0;
-                                        rcounts[k] = headreader->getColumns()[k].getBlock(bind[k]).getRowcount();
+                                        rcounts[k] = headreader->getColumn(k).getBlock(bind[k]).getRowcount();
                                         bind[k]++;
                                     }
                                     int tmp = blockreaders[k]->next<int>();
                                     r[1]->fieldAt(k - 10) = tmp;
-                                    cout << tmp << " ";
+                                    //cout << tmp << " ";
                                     rind[k]++;
                                     break;
                                 }
@@ -1439,12 +1448,12 @@ void NestedReader(string datafile, string schemafile) {
                                     if (rind[k] == rcounts[k]) {
                                         blockreaders[k]->loadFromFile();
                                         rind[k] = 0;
-                                        rcounts[k] = headreader->getColumns()[k].getBlock(bind[k]).getRowcount();
+                                        rcounts[k] = headreader->getColumn(k).getBlock(bind[k]).getRowcount();
                                         bind[k]++;
                                     }
                                     string tmp = blockreaders[k]->next<char *>();
                                     r[1]->fieldAt(k - 10) = tmp;
-                                    cout << tmp << " ";
+                                    //cout << tmp << " ";
                                     rind[k]++;
                                     break;
                                 }
@@ -1452,12 +1461,12 @@ void NestedReader(string datafile, string schemafile) {
                                     if (rind[k] == rcounts[k]) {
                                         blockreaders[k]->loadFromFile();
                                         rind[k] = 0;
-                                        rcounts[k] = headreader->getColumns()[k].getBlock(bind[k]).getRowcount();
+                                        rcounts[k] = headreader->getColumn(k).getBlock(bind[k]).getRowcount();
                                         bind[k]++;
                                     }
                                     float tmp = blockreaders[k]->next<float>();
                                     r[1]->fieldAt(k - 10) = tmp;
-                                    cout << tmp << " ";
+                                    //cout << tmp << " ";
                                     rind[k]++;
                                     break;
                                 }
@@ -1465,22 +1474,22 @@ void NestedReader(string datafile, string schemafile) {
                                     if (rind[k] == rcounts[k]) {
                                         blockreaders[k]->loadFromFile();
                                         rind[k] = 0;
-                                        rcounts[k] = headreader->getColumns()[k].getBlock(bind[k]).getRowcount();
+                                        rcounts[k] = headreader->getColumn(k).getBlock(bind[k]).getRowcount();
                                         bind[k]++;
                                     }
                                     char tmp = blockreaders[k]->next<char>();
                                     r[1]->fieldAt(k - 10) = tmp;
-                                    cout << tmp << " ";
+                             //       cout << tmp << " ";
                                     rind[k]++;
                                     break;
                                 }
                             }
-                        }
-                        //records.push_back(GenericDatum(r[1]));
+			}
+                        records.push_back(GenericDatum(r[1]));
                     }
                     r[0]->fieldAt(9).value<GenericArray>().value() = records;
                     records.clear();
-//                    cout<<endl;
+                    //cout<<endl;
                 }
 //            cout<<endl;
 //                cout<<endl;
@@ -1559,13 +1568,13 @@ void LReader(string datafile, string schemafile, vector<int> rv) {
 
     for (int i1 = 0; i1 < 16; ++i1) {
         fpp[i1] = fopen("./fileout.dat", "rb");
-        fseek(fpp[i1], headreader->getColumns()[i1 + 10].getOffset(), SEEK_SET);
+        fseek(fpp[i1], headreader->getColumn(i1+10).getOffset(), SEEK_SET);
     }
     int *rind = new int[16]();
     int *bind = new int[16]();
     int *rcounts = new int[16]();
     for (int l1 = 0; l1 < 16; ++l1) {
-        rcounts[l1] = headreader->getColumns()[l1 + 10].getBlock(bind[l1]).getRowcount();
+        rcounts[l1] = headreader->getColumn(l1+10).getBlock(bind[l1]).getRowcount();
     }
     int blocksize = 1024;
     Block *blockreaders[16];
@@ -1584,13 +1593,13 @@ void LReader(string datafile, string schemafile, vector<int> rv) {
                 case AVRO_LONG: {
                     if (rind[i] == rcounts[i]) {
                         blockreaders[i]->loadFromFile();
-                        rind[i] = 1;
-                        rcounts[i] = headreader->getColumns()[i + 10].getBlock(bind[i]).getRowcount();
+                        rind[i] = 0;
+                        rcounts[i] = headreader->getColumn(i+10).getBlock(bind[i]).getRowcount();
                         bind[i]++;
                     }
                     long tmp = blockreaders[i]->next<long>();
                     r[1]->fieldAt(i) = tmp;
-                    cout << tmp << " ";
+//                    cout << tmp << " ";
                     rind[i]++;
                     break;
                 }
@@ -1598,12 +1607,12 @@ void LReader(string datafile, string schemafile, vector<int> rv) {
                     if (rind[i] == rcounts[i]) {
                         blockreaders[i]->loadFromFile();
                         rind[i] = 0;
-                        rcounts[i] = headreader->getColumns()[i].getBlock(bind[i]).getRowcount();
-                        bind[i]++;
+                        rcounts[i] = headreader->getColumn(i+10).getBlock(bind[i]).getRowcount();
+			bind[i]++;
                     }
                     int tmp = blockreaders[i]->next<int>();
                     r[1]->fieldAt(i) = tmp;
-                    cout << tmp << " ";
+//                    cout << tmp << " ";
                     rind[i]++;
                     break;
                 }
@@ -1611,12 +1620,12 @@ void LReader(string datafile, string schemafile, vector<int> rv) {
                     if (rind[i] == rcounts[i]) {
                         blockreaders[i]->loadFromFile();
                         rind[i] = 0;
-                        rcounts[i] = headreader->getColumns()[i].getBlock(bind[i]).getRowcount();
-                        bind[i]++;
+                        rcounts[i] = headreader->getColumn(i+10).getBlock(bind[i]).getRowcount();
+			bind[i]++;
                     }
                     string tmp = blockreaders[i]->next<char *>();
                     r[1]->fieldAt(i) = tmp;
-                    cout << tmp << " ";
+//                    cout << tmp << " ";
                     rind[i]++;
                     break;
                 }
@@ -1624,12 +1633,12 @@ void LReader(string datafile, string schemafile, vector<int> rv) {
                     if (rind[i] == rcounts[i]) {
                         blockreaders[i]->loadFromFile();
                         rind[i] = 0;
-                        rcounts[i] = headreader->getColumns()[i].getBlock(bind[i]).getRowcount();
+			rcounts[i] = headreader->getColumn(i+10).getBlock(bind[i]).getRowcount();
                         bind[i]++;
                     }
                     float tmp = blockreaders[i]->next<float>();
                     r[1]->fieldAt(i) = tmp;
-                    cout << tmp << " ";
+//                    cout << tmp << " ";
                     rind[i]++;
                     break;
                 }
@@ -1637,19 +1646,19 @@ void LReader(string datafile, string schemafile, vector<int> rv) {
                     if (rind[i] == rcounts[i]) {
                         blockreaders[i]->loadFromFile();
                         rind[i] = 0;
-                        rcounts[i] = headreader->getColumns()[i].getBlock(bind[i]).getRowcount();
-                        bind[i]++;
+                        rcounts[i] = headreader->getColumn(i+10).getBlock(bind[i]).getRowcount();
+			bind[i]++;
                     }
                     char tmp = blockreaders[i]->next<char>();
                     r[1]->fieldAt(i) = tmp;
-                    cout << tmp << " ";
+//                    cout << tmp << " ";
                     rind[i]++;
                     break;
                 }
             }
-            if (i == 15) {
-                cout << endl;
-            }
+//            if (i == 15) {
+//                cout << endl;
+//            }
         }
     }
     for (int i1 = 0; i1 < 16; ++i1) {
@@ -1688,25 +1697,29 @@ void fileTest() {
     FILE *fpr = fopen("./fileout.dat", "rb");
     FILE *_fpr = fopen("./fileout.dat", "rb");
     int count = 0;
-    int i = 1;
+    int i = 25;
     long off = headreader->getColumns()[i].getOffset();
     fseek(fpr, off, SEEK_SET);
     fseek(_fpr, headreader->getColumns()[0].getOffset(), SEEK_SET);
     char buffer[1024];
+    any tmp="sss";
 
     Block *stringBlock = new Block(fpr, 0L, 0, 1024);
     Block *keyBlock = new Block(_fpr, 0L, 0, 1024);
-    for (int k = 0; ; k++) {
+    long max = headreader->getColumn(i).getblockCount();
+//    orderkey=blockreaders[i]->get<long>(rind[i]);
+//        for (; bind[0] < max;) 
+    for (int k = 0;k<max ; k++) {
         stringBlock->loadFromFile();
-        keyBlock->loadFromFile();
+//        keyBlock->loadFromFile();
         int rcount = headreader->getColumn(i).getBlock(k).getRowcount();
         for (int i = 0; i < rcount; i++) {
-            long key = stringBlock->next<long>();
+            tmp = stringBlock->next<char*>();
          //   long tmp = keyBlock->next<long>();
             count++;
 //            cout << key << " " << tmp << endl;
         }
-        stringBlock->loadFromFile();
+//        stringBlock->loadFromFile();
        // cout << endl;
     }
     delete stringBlock;
@@ -1718,15 +1731,15 @@ void fileTest() {
 int main() {
 //    testFILEWRITER();
 //    testFileReader();
-    OLWriter();
-//    NestedReader("./fileout.dat","./nest.avsc");
+//    OLWriter();
+    NestedReader("./fileout.dat","../res/schema/nest.avsc");
 //    nextReader();
-//    vector<int> tmp;
-//    for (int i=0;i<16;i++){
-//        tmp.push_back(i);
-//    }
-//
-//    LReader("./fileout.dat","./nest.avsc",tmp);
+    vector<int> tmp;
+    for (int i=0;i<16;i++){
+        tmp.push_back(i);
+    }
+
+//    LReader("./fileout.dat","../res/schema/nest.avsc",tmp);
 //    fileTest();
 //    filesMerge("./orders","./lineitem",".");
 //    COLWriter();
