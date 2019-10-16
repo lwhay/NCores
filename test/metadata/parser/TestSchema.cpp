@@ -1525,6 +1525,8 @@ void nextReader() {
 }
 
 void LReader(string datafile, string schemafile, vector<int> rv) {
+    Tracer tracer;
+    tracer.startTime();
     fstream schema_f(schemafile, schema_f.binary | schema_f.in | schema_f.out);
     ostringstream buf;
     char ch;
@@ -1533,23 +1535,28 @@ void LReader(string datafile, string schemafile, vector<int> rv) {
     string s_schema = buf.str();
     char *schema = const_cast<char *>(s_schema.c_str());
     JsonParser *test = new JsonParser();
+    cout << "sfile open: " << tracer.getRunTime() << endl;
     test->init(schema);
+    cout << "sinit open: " << tracer.getRunTime() << endl;
     Entity e_test = readEntity(*test);
     SymbolTable st;
     NodePtr n = makeNode(e_test, st, "");
     ValidSchema *vschema = new ValidSchema(n);
     GenericDatum c;
     c = GenericDatum(vschema->root());
+    cout << "record init: " << tracer.getRunTime() << endl;
     GenericRecord *r[2] = {NULL, NULL};
     r[0] = new GenericRecord(c.value<GenericRecord>());
     GenericDatum t = r[0]->fieldAt(9);
     c = GenericDatum(r[0]->fieldAt(9).value<GenericArray>().schema()->leafAt(0));
     r[1] = new GenericRecord(c.value<GenericRecord>());
+    cout << "record set: " << tracer.getRunTime() << endl;
     ifstream file_in;
     file_in.open("./fileout.dat", ios_base::in | ios_base::binary);
     unique_ptr<HeadReader> headreader(new HeadReader());
     headreader->readHeader(file_in);
     file_in.close();
+    cout << "header read: " << tracer.getRunTime() << endl;
     FILE **fpp = new FILE *[16];
 
     for (int i1 = 0; i1 < 16; ++i1) {
@@ -1562,6 +1569,7 @@ void LReader(string datafile, string schemafile, vector<int> rv) {
     for (int l1 = 0; l1 < 16; ++l1) {
         rcounts[l1] = headreader->getColumns()[l1 + 10].getBlock(bind[l1]).getRowcount();
     }
+    cout << "header set: " << tracer.getRunTime() << endl;
     int blocksize = 1024;
     Block *blockreaders[16];
     for (int j = 0; j < 16; ++j) {
@@ -1571,9 +1579,8 @@ void LReader(string datafile, string schemafile, vector<int> rv) {
     long orderkey;
     long key;
     long max = headreader->getColumn(10).getblockCount();
+    cout << "header rewind: " << tracer.getRunTime() << endl;
 
-    Tracer tracer;
-    tracer.startTime();
 //    orderkey=blockreaders[i]->get<long>(rind[i]);
     int last = bind[0];
     for (; bind[0] < max;) {
@@ -1650,7 +1657,7 @@ void LReader(string datafile, string schemafile, vector<int> rv) {
             }
         }
         if (bind[0] != last && bind[0] % 1000 == 0) {
-            cout << bind[0] << ":" << tracer.getRunTime() << endl;
+            cout << "\t" << bind[0] << ":" << tracer.getRunTime() << endl;
             last = bind[0];
         }
     }
