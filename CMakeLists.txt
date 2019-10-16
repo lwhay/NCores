@@ -470,3 +470,47 @@ foreach (sourcefile ${LIBBL_TEST_EXES})
             OUTPUT_NAME ${exename}${ARTIFACT_SUFFIX}
             )
 endforeach (sourcefile ${LIBBL_TEST_EXES})
+
+option(WITH_ARROW "build with arrow" ON)
+
+if (WITH_ARROW)
+    include(ExternalProject)
+    set(ARROW_PREFIX "${CMAKE_CURRENT_BINARY_DIR}/arrow")
+    message(STATUS "BUILD_TYPE: ${CMAKE_BUILD_TYPE}")
+    message(STATUS "ARROW_PREFIX: ${ARROW_PREFIX}")
+    ExternalProject_Add(arrow
+            PREFIX "${ARROW_PREFIX}"
+            GIT_REPOSITORY https://github.com/apache/arrow
+            GIT_TAG master
+            INSTALL_COMMAND ""
+            # Tell CMake to use subdirectory as source.
+            CONFIGURE_COMMAND ${CMAKE_COMMAND} -DCMAKE_INSTALL_PREFIX:PATH=/usr/local ${ARROW_PREFIX}/src/arrow/cpp
+            BUILD_COMMAND $(MAKE)
+            CMAKE_ARGS -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
+            LOG_DOWNLOAD ON
+            LOG_CONFIGURE ON
+            LOG_BUILD ON
+            )
+
+    include_directories(
+            ${ARROW_PREFIX}/src/arrow/cpp
+            ${ARROW_PREFIX}/src/arrow-build
+    )
+
+    link_directories(${ARROW_PREFIX}/src/arrow-build/)
+
+    set(ARROW_TEST
+            )
+
+    foreach (sourcefile ${ARROW_TEST})
+        get_filename_component(exename ${sourcefile} NAME_WE)
+        add_executable(${CMAKE_PROJECT_NAME}_${exename}${ARTIFACT_SUFFIX} ${sourcefile})
+        set_target_properties(${CMAKE_PROJECT_NAME}_${exename}${ARTIFACT_SUFFIX}
+                PROPERTIES EXCLUDE_FROM_DEFAULT_BUILD_RELEASE 1
+                EXCLUDE_FROM_DEFAULT_BUILD_MINRELEASE 1
+                EXCLUDE_FROM_DEFAULT_BUILD_RELWITHDEBINFO 1
+                OUTPUT_NAME ${exename}${ARTIFACT_SUFFIX}
+                )
+        target_link_libraries(${CMAKE_PROJECT_NAME}_${exename}${ARTIFACT_SUFFIX} gtest -larrow)
+    endforeach (sourcefile ${ARROW_TEST})
+endif ()
