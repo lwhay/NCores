@@ -1732,6 +1732,8 @@ int main(int argc, char **argv) {
         NestedReader("./fileout.dat", "../res/schema/nest.avsc");
 //    nextReader();
         cout << "nest: " << tracer.getRunTime() << endl;
+        system("echo 3 > /proc/sys/vm/drop_caches");
+        tracer.startTime();
         vector<int> tmp;
         for (int i = 0; i < 16; i++) {
             tmp.push_back(i);
