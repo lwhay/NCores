@@ -481,10 +481,10 @@ if (WITH_ARROW)
             GIT_REPOSITORY https://github.com/apache/arrow
             GIT_TAG master
             INSTALL_COMMAND ""
-            BUILD_COMMAND ${MAKE} -j8
+            CONFIGURE_COMMAND ${CMAKE_COMMAND} -DCMAKE_INSTALL_PREFIX:PATH=/usr/local ${ARROW_PREFIX}/src/arrow/cpp
+            BUILD_COMMAND $(MAKE) -j8
             # Tell CMake to use subdirectory as source.
             CMAKE_ARGS -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
-            CONFIGURE_COMMAND ${CMAKE_COMMAND} -DCMAKE_INSTALL_PREFIX:PATH=/usr/local ${ARROW_PREFIX}/src/arrow/cpp
             LOG_DOWNLOAD ON
             LOG_CONFIGURE ON
             LOG_BUILD ON
