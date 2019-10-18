@@ -480,6 +480,7 @@ if (WITH_ARROW)
             PREFIX "${ARROW_PREFIX}"
             GIT_REPOSITORY https://github.com/apache/arrow
             GIT_TAG master
+            UPDATE_COMMAND ""
             INSTALL_COMMAND ""
             CONFIGURE_COMMAND ${CMAKE_COMMAND} -DCMAKE_INSTALL_PREFIX:PATH=/usr/local ${ARROW_PREFIX}/src/arrow/cpp
             BUILD_COMMAND $(MAKE) -j8
