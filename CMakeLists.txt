@@ -482,19 +482,35 @@ if (WITH_ARROW)
             GIT_TAG master
             UPDATE_COMMAND ""
             INSTALL_COMMAND ""
-            CONFIGURE_COMMAND ${CMAKE_COMMAND} -DCMAKE_INSTALL_PREFIX:PATH=/usr/local ${ARROW_PREFIX}/src/arrow/cpp
+            CMAKE_ARGS -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} -DARROW_PARQUET=1
+            CONFIGURE_COMMAND ${CMAKE_COMMAND} -DARROW_PARQUET=1 -DARROW_BUILD_TESTS=ON -DCMAKE_INSTALL_PREFIX:PATH=/usr/local ${ARROW_PREFIX}/src/arrow/cpp
             BUILD_COMMAND $(MAKE) -j8
             # Tell CMake to use subdirectory as source.
-            CMAKE_ARGS -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
             LOG_DOWNLOAD ON
             LOG_CONFIGURE ON
             LOG_BUILD ON
             )
 
+    #[[file(GLOB_RECURSE arrowdirs ${ARROW_PREFIX}/src/arrow/cpp/src/arrow/ CONFIGURE_DEPENDS "*.h")
+    message(${arrowdirs})]]
+
     include_directories(
             test/arrow/unit
+            ${arrowdirs}
             ${ARROW_PREFIX}/src/arrow/cpp/src
             ${ARROW_PREFIX}/src/arrow/cpp/src/arrow
+            ${ARROW_PREFIX}/src/arrow/cpp/src/arrow/apdaters
+            ${ARROW_PREFIX}/src/arrow/cpp/src/arrow/array
+            ${ARROW_PREFIX}/src/arrow/cpp/src/arrow/compute
+            ${ARROW_PREFIX}/src/arrow/cpp/src/arrow/compute/kernel
+            ${ARROW_PREFIX}/src/arrow/cpp/src/arrow/compute/operations
+            ${ARROW_PREFIX}/src/arrow/cpp/src/arrow/csv
+            ${ARROW_PREFIX}/src/arrow/cpp/src/arrow/filesystem
+            ${ARROW_PREFIX}/src/arrow/cpp/src/arrow/dbi
+            ${ARROW_PREFIX}/src/arrow/cpp/src/arrow/testing
+            ${ARROW_PREFIX}/src/arrow/cpp/src/arrow/dataset
+            ${ARROW_PREFIX}/src/arrow/cpp/src/arrow/util
+            ${ARROW_PREFIX}/src/arrow/cpp/src/arrow/io
             ${ARROW_PREFIX}/src/arrow/cpp/src/parquet
             ${ARROW_PREFIX}/src/arrow-build/src
     )
