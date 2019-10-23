@@ -101,6 +101,7 @@ public:
     /// Makes a new AVRO_STRING datum whose value is of type std::string.
     GenericDatum(const std::string &v) : type_(AVRO_STRING), value_(v) {}
 
+    GenericDatum(const char* v) : type_(AVRO_STRING), value_(v) {}
     /// Makes a new AVRO_BYTES datum whose value is of type
     /// std::vector<uint8_t>.
     GenericDatum(const std::vector<uint8_t> &v) :

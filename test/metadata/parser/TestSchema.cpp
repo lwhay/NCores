@@ -1337,6 +1337,8 @@ void NestedReader(string datafile, string schemafile) {
         r2.push_back(i);
     }
 
+    vector<GenericDatum>& records= r[0]->fieldAt(9).value<GenericArray>().value();
+
     for (int k1 = 0; k1 < headreader->getRowCount(); ++k1) {
         for (int i :r1) {
             switch (r[0]->fieldAt(i).type()) {
@@ -1373,7 +1375,7 @@ void NestedReader(string datafile, string schemafile) {
                         rcounts[i] = headreader->getColumn(i).getBlock(bind[i]).getRowcount();
 			bind[i]++;
                     }
-                    string tmp = blockreaders[i]->next<char *>();
+                    char* tmp = blockreaders[i]->next<char *>();
                     r[0]->fieldAt(i) = tmp;
                     //cout << tmp << " ";
                     rind[i]++;
@@ -1415,7 +1417,7 @@ void NestedReader(string datafile, string schemafile) {
                     int arrsize = blockreaders[i]->next<int>();
                     rind[i]++;
                     //cout << arrsize << endl;
-                    vector<GenericDatum> records;
+                    //vector<GenericDatum> records;
                     for (int j = 0; j < arrsize; ++j) {
                         for(int k:r2) {
                             switch (r[1]->fieldAt(k - 10).type()) {
@@ -1451,7 +1453,7 @@ void NestedReader(string datafile, string schemafile) {
                                         rcounts[k] = headreader->getColumn(k).getBlock(bind[k]).getRowcount();
                                         bind[k]++;
                                     }
-                                    string tmp = blockreaders[k]->next<char *>();
+                                    char* tmp = blockreaders[k]->next<char *>();
                                     r[1]->fieldAt(k - 10) = tmp;
                                     //cout << tmp << " ";
                                     rind[k]++;
@@ -1485,9 +1487,10 @@ void NestedReader(string datafile, string schemafile) {
                                 }
                             }
 			}
+//			records.push_back(GenericDatum());
                         records.push_back(GenericDatum(r[1]));
                     }
-                    r[0]->fieldAt(9).value<GenericArray>().value() = records;
+//                    r[0]->fieldAt(9).value<GenericArray>().value() = records;
                     records.clear();
                     //cout<<endl;
                 }
@@ -1584,11 +1587,13 @@ void LReader(string datafile, string schemafile, vector<int> rv) {
     }
     long orderkey;
     long key;
-    long max = headreader->getColumn(10).getblockCount();
+    long max = headreader->getColumn(rv[0]+10).getblockCount();
 
 //    orderkey=blockreaders[i]->get<long>(rind[i]);
-    for (; bind[0] < max;) {
+    for (; bind[rv[0]] < max;) {
         for (int i :rv) {
+//cout<<i<<endl;
+//cout<<r[1]->fieldAt(i).type()<<endl;
             switch (r[1]->fieldAt(i).type()) {
                 case AVRO_LONG: {
                     if (rind[i] == rcounts[i]) {
@@ -1617,13 +1622,14 @@ void LReader(string datafile, string schemafile, vector<int> rv) {
                     break;
                 }
                 case AVRO_STRING: {
+//cout<<"string"<<endl;
                     if (rind[i] == rcounts[i]) {
                         blockreaders[i]->loadFromFile();
                         rind[i] = 0;
                         rcounts[i] = headreader->getColumn(i+10).getBlock(bind[i]).getRowcount();
 			bind[i]++;
                     }
-                    string tmp = blockreaders[i]->next<char *>();
+                    char* tmp = blockreaders[i]->next<char *>();
                     r[1]->fieldAt(i) = tmp;
 //                    cout << tmp << " ";
                     rind[i]++;
@@ -1702,29 +1708,74 @@ void fileTest() {
     fseek(fpr, off, SEEK_SET);
     fseek(_fpr, headreader->getColumns()[0].getOffset(), SEEK_SET);
     char buffer[1024];
-    any tmp="sss";
-
+    any tmp=1;
     Block *stringBlock = new Block(fpr, 0L, 0, 1024);
     Block *keyBlock = new Block(_fpr, 0L, 0, 1024);
     long max = headreader->getColumn(i).getblockCount();
 //    orderkey=blockreaders[i]->get<long>(rind[i]);
 //        for (; bind[0] < max;) 
+    Type tp=AVRO_LONG;
+
+/*
     for (int k = 0;k<max ; k++) {
         stringBlock->loadFromFile();
 //        keyBlock->loadFromFile();
         int rcount = headreader->getColumn(i).getBlock(k).getRowcount();
-        for (int i = 0; i < rcount; i++) {
-            tmp = stringBlock->next<char*>();
+        for (int l = 0; l < rcount; l++) {
+//	    switch(r[1]->fieldAt(i-10).type())
+//		case AVRO_LONG:
+//	    if(tp==AVRO_LONG)
+//            char* tmp = stringBlock->next<char*>();
+//	    r[1]->fieldAt(i-10)=tmp;
+	    r[1]->fieldAt(i-10)=stringBlock->next<char>();
          //   long tmp = keyBlock->next<long>();
             count++;
 //            cout << key << " " << tmp << endl;
         }
-//        stringBlock->loadFromFile();
+        //stringBlock->loadFromFile();
        // cout << endl;
     }
     delete stringBlock;
+*/
 
+ FILE **fpp = new FILE *[16];
 
+    for (int i1 = 0; i1 < 16; ++i1) {
+        fpp[i1] = fopen("./fileout.dat", "rb");
+        fseek(fpp[i1], headreader->getColumn(i1+10).getOffset(), SEEK_SET);
+    }
+
+    int *rind = new int[16]();
+    int *bind = new int[16]();
+    int *rcounts = new int[16]();
+    for (int l1 = 0; l1 < 16; ++l1) {
+        rcounts[l1] = headreader->getColumn(l1+10).getBlock(bind[l1]).getRowcount();
+    }
+    int blocksize = 1024;
+    Block *blockreaders[16];
+    for (int j = 0; j < 16; ++j) {
+        blockreaders[j] = new Block(fpp[j], 0L, 0, blocksize);
+        blockreaders[j]->loadFromFile();
+    }
+
+    i=15;
+   stringBlock = blockreaders[i];
+  
+                for (; bind[i] < max;) {
+                    if (rind[i] == rcounts[i]) {
+                        blockreaders[i]->loadFromFile();
+                        rind[i] = 0;
+                        rcounts[i] = headreader->getColumn(i+10).getBlock(bind[i]).getRowcount();
+                        bind[i]++;
+                    }
+                    char* tmp = blockreaders[i]->next<char *>();
+
+//                    string tmp = stringBlock->next<char *>();
+
+                    r[1]->fieldAt(i) = tmp;
+                   // cout << tmp << endl;
+                    rind[i]++;
+                    }
 }
 
 
@@ -1735,10 +1786,10 @@ int main() {
     NestedReader("./fileout.dat","../res/schema/nest.avsc");
 //    nextReader();
     vector<int> tmp;
-    for (int i=0;i<16;i++){
+    for (int i=0;i<16;i++){    
         tmp.push_back(i);
     }
-
+//    tmp.push_back(15);
 //    LReader("./fileout.dat","../res/schema/nest.avsc",tmp);
 //    fileTest();
 //    filesMerge("./orders","./lineitem",".");
