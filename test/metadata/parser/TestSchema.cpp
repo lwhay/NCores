@@ -1370,7 +1370,7 @@ void NestedReader(string datafile, string schemafile) {
                         rcounts[i] = headreader->getColumn(i).getBlock(bind[i]).getRowcount();
                         bind[i]++;
                     }
-                    char* tmp = blockreaders[i]->next<char *>();
+                    char *tmp = blockreaders[i]->next<char *>();
                     r[0]->fieldAt(i) = tmp;
                     //cout << tmp << " ";
                     rind[i]++;
@@ -1449,7 +1449,7 @@ void NestedReader(string datafile, string schemafile) {
                                         rcounts[k] = headreader->getColumn(k).getBlock(bind[k]).getRowcount();
                                         bind[k]++;
                                     }
-                                    char* tmp = blockreaders[k]->next<char *>();
+                                    char *tmp = blockreaders[k]->next<char *>();
                                     r[1]->fieldAt(k - 10) = tmp;
                                     //cout << tmp << " ";
                                     rind[k]++;
@@ -1630,9 +1630,9 @@ void LReader(string datafile, string schemafile, vector<int> rv) {
                         rcounts[i] = headreader->getColumn(i + 10).getBlock(bind[i]).getRowcount();
                         bind[i]++;
                     }
-                    char* tmp = blockreaders[i]->next<char *>();
+                    char *tmp = blockreaders[i]->next<char *>();
                     r[1]->fieldAt(i) = tmp;
-                    cout << tmp << " ";
+                    //cout << tmp << " ";
                     rind[i]++;
                     break;
                 }
@@ -1754,7 +1754,7 @@ int main(int argc, char **argv) {
             tmp.push_back(i);
         }
 
-        tmp.push_back(15);
+        //tmp.push_back(15);
         LReader("./fileout.dat", "../res/schema/nest.avsc", tmp);
         cout << "flat: " << tracer.getRunTime() << endl;
 //    fileTest();
