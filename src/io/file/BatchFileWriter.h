@@ -169,7 +169,7 @@ class BatchFileWriter {
 
 public:
 
-    BatchFileWriter(GenericDatum record, string path, int blocksize) {
+    BatchFileWriter(GenericDatum record, string path, int blocksize=1024) {
         this->record = new GenericRecord(record.value<GenericRecord>());
         this->path = path;
         this->blocksize = blocksize;
@@ -189,6 +189,10 @@ public:
             data_files[i] = fopen((path + "/file" + to_string(i) + ".data").data(), "wb+");
             data_buffers[i] = new char[blocksize];
             heads_info[i] = new int[blocksize];
+        }
+        if(!head_files[0]) {
+            std::perror("File opening failed");
+            return EXIT_FAILURE;
         }
 
     }
