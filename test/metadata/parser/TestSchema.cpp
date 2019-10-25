@@ -1333,6 +1333,7 @@ void NestedReader(string datafile, string schemafile) {
         r2.push_back(i);
     }
 
+    vector<GenericDatum> &records = r[0]->fieldAt(9).value<GenericArray>().value();
     for (int k1 = 0; k1 < headreader->getRowCount(); ++k1) {
         for (int i :r1) {
             switch (r[0]->fieldAt(i).type()) {
@@ -1343,7 +1344,7 @@ void NestedReader(string datafile, string schemafile) {
                         rcounts[i] = headreader->getColumn(i).getBlock(bind[i]).getRowcount();
                         bind[i]++;
                     }
-                    long tmp = blockreaders[i]->next<long>();
+                    int64_t tmp = blockreaders[i]->next<long>();
                     r[0]->fieldAt(i) = tmp;
                     //cout << tmp << " ";
                     rind[i]++;
@@ -1369,7 +1370,7 @@ void NestedReader(string datafile, string schemafile) {
                         rcounts[i] = headreader->getColumn(i).getBlock(bind[i]).getRowcount();
                         bind[i]++;
                     }
-                    char* tmp = blockreaders[i]->next<char *>();
+                    char *tmp = blockreaders[i]->next<char *>();
                     r[0]->fieldAt(i) = tmp;
                     //cout << tmp << " ";
                     rind[i]++;
@@ -1411,7 +1412,7 @@ void NestedReader(string datafile, string schemafile) {
                     int arrsize = blockreaders[i]->next<int>();
                     rind[i]++;
                     //cout << arrsize << endl;
-                    vector<GenericDatum> records;
+                    //vector<GenericDatum> records;
                     for (int j = 0; j < arrsize; ++j) {
                         for (int k:r2) {
                             switch (r[1]->fieldAt(k - 10).type()) {
@@ -1422,7 +1423,7 @@ void NestedReader(string datafile, string schemafile) {
                                         rcounts[k] = headreader->getColumn(k).getBlock(bind[k]).getRowcount();
                                         bind[k]++;
                                     }
-                                    long tmp = blockreaders[k]->next<long>();
+                                    int64_t tmp = blockreaders[k]->next<long>();
                                     r[1]->fieldAt(k - 10) = tmp;
                                     //cout << tmp << " ";
                                     rind[k]++;
@@ -1448,7 +1449,7 @@ void NestedReader(string datafile, string schemafile) {
                                         rcounts[k] = headreader->getColumn(k).getBlock(bind[k]).getRowcount();
                                         bind[k]++;
                                     }
-                                    char* tmp = blockreaders[k]->next<char *>();
+                                    char *tmp = blockreaders[k]->next<char *>();
                                     r[1]->fieldAt(k - 10) = tmp;
                                     //cout << tmp << " ";
                                     rind[k]++;
@@ -1484,7 +1485,7 @@ void NestedReader(string datafile, string schemafile) {
                         }
                         records.push_back(GenericDatum(r[1]));
                     }
-                    r[0]->fieldAt(9).value<GenericArray>().value() = records;
+                    //r[0]->fieldAt(9).value<GenericArray>().value() = records;
                     records.clear();
                     //cout<<endl;
                 }
@@ -1603,7 +1604,7 @@ void LReader(string datafile, string schemafile, vector<int> rv) {
                         rcounts[i] = headreader->getColumn(i + 10).getBlock(bind[i]).getRowcount();
                         bind[i]++;
                     }
-                    long tmp = blockreaders[i]->next<long>();
+                    int64_t tmp = blockreaders[i]->next<long>();
                     r[1]->fieldAt(i) = tmp;
 //                    cout << tmp << " ";
                     rind[i]++;
@@ -1629,9 +1630,10 @@ void LReader(string datafile, string schemafile, vector<int> rv) {
                         rcounts[i] = headreader->getColumn(i + 10).getBlock(bind[i]).getRowcount();
                         bind[i]++;
                     }
-                    char* tmp = blockreaders[i]->next<char *>();
+                    char *tmp = blockreaders[i]->next<char *>();
                     r[1]->fieldAt(i) = tmp;
                     cout << tmp << " ";
+                    //cout << tmp << " ";
                     rind[i]++;
                     break;
                 }
@@ -1753,7 +1755,7 @@ int main(int argc, char **argv) {
 //            tmp.push_back(i);
 //        }
 
-        tmp.push_back(15);
+        //tmp.push_back(15);
         LReader("./fileout.dat", "../res/schema/nest.avsc", tmp);
         cout << "flat: " << tracer.getRunTime() << endl;
 //    fileTest();
