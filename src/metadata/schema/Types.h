@@ -51,6 +51,26 @@ enum FieldType {
     union_array = 48
 };
 
+enum ClauseType {
+    filter = 0,
+    fetch = 1,
+    aggregate = 2,
+    group = 3
+};
+
+enum OperatorType {
+    eq = 0,
+    ne = 1,
+    lt = 2,
+    le = 3,
+    gt = 4,
+    ge = 5,
+    contains = 10,
+    notcontains = 11,
+    startwith = 12,
+    endwith = 13
+};
+
 enum CodecType {
     null = 0,
     snappy,
