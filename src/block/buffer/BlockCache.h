@@ -374,4 +374,24 @@ public:
         return tmpc;
     }
 
+    vector<int>* initString(int offsize){
+        char* tmpbuf=new char[4]();
+        char* tmp=(char*)_cache;
+        vector<int>* offarr=new vector<int>();
+        memcpy(tmpbuf,_cache,offsize);
+        int* tmpi=(int*)tmpbuf;
+        offarr->push_back(*tmpi);
+        int num=*tmpi/offsize;
+        for (int j = 1; j < num; ++j) {
+            tmp+=offsize;
+            memcpy(tmpbuf,tmp,offsize);
+            offarr->push_back(*tmpi);
+        }
+        return offarr;
+    }
+
+    char* getoffstring(int offset){
+        return (char*)_cache+offset;
+    }
+
 };
