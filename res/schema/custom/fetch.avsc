@@ -1,0 +1,62 @@
+{
+  "type": "record",
+  "name": "Customer",
+  "fields": [
+    {
+      "name": "c_custkey",
+      "clause": "fetch"
+    },
+    {
+      "name": "c_name",
+      "clause": "fetch"
+    },
+    {
+      "name": "OrderList",
+      "type": {
+        "type": "array",
+        "items": {
+          "type": "record",
+          "name": "Order",
+          "fields": [
+            {
+              "name": "o_orderkey",
+              "clause": "fetch"
+            },
+            {
+              "name": "o_custkey",
+              "clause": "fetch"
+            },
+            {
+              "name": "LineitemList",
+              "type": {
+                "type": "array",
+                "items": {
+                  "type": "record",
+                  "name": "Lineitem",
+                  "fields": [
+                    {
+                      "name": "l_orderkey",
+                      "clause": "fetch"
+                    },
+                    {
+                      "name": "l_partkey",
+                      "clause": "fetch"
+                    },
+                    {
+                      "name": "l_suppkey",
+                      "clause": "fetch"
+                    },
+                    {
+                      "name": "l_linestatus",
+                      "clause": "fetch"
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

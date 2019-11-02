@@ -58,6 +58,12 @@ enum ClauseType {
     group = 3
 };
 
+enum CompositeType {
+    conjunctive,
+    disjunctive,
+    negative
+};
+
 enum OperatorType {
     eq = 0,
     ne = 1,

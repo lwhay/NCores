@@ -249,6 +249,7 @@ if (WITH_STANDALONE_TESTS)
             test/primitive/BasicTypeTest.cpp
             test/utils/BitsetTest.cpp
             test/utils/ClearMemory.cpp
+            test/utils/GKTests.cpp
             )
 endif ()
 

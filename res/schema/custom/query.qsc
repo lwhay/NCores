@@ -14,11 +14,23 @@
       "name": "c_acctbal",
       "clause": "filter",
       "body": {
-        "operator": "ge",
-        "operand": {
-          "type": "float",
-          "value": 0.01
-        }
+        "composite": "disjuncitve",
+        "condition": [
+          {
+            "operator": "ge",
+            "operand": {
+              "type": "float",
+              "value": 0.01
+            }
+          },
+          {
+            "operator": "lt",
+            "operand": {
+              "type": "float",
+              "value": 0.05
+            }
+          }
+        ]
       }
     },
     {
@@ -41,10 +53,13 @@
               "name": "o_orderdate",
               "clause": "filter",
               "body": {
-                "operator": "contains",
-                "operand": {
-                  "type": "string",
-                  "value": "1992"
+                "compisite": "negative",
+                "condition": {
+                  "operator": "contains",
+                  "operand": {
+                    "type": "string",
+                    "value": "1992"
+                  }
                 }
               }
             },
@@ -68,11 +83,58 @@
                       "name": "l_shipdate",
                       "clause": "filter",
                       "body": {
-                        "operator": "lt",
-                        "operand": {
-                          "type": "string",
-                          "value": "1993"
-                        }
+                        "compisite": "conjunctive",
+                        "condition": [
+                          {
+                            "operator": "lt",
+                            "operand": {
+                              "type": "string",
+                              "value": "1993"
+                            }
+                          },
+                          {
+                            "operator": "ge",
+                            "operand": {
+                              "type": "string",
+                              "value": "1992"
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "name": "l_commitdate",
+                      "clause": "filter",
+                      "body": {
+                        "compisite": "disjunctive",
+                        "condition": [
+                          {
+                            "compisite": "conjunctive",
+                            "condition": [
+                              {
+                                "operator": "lt",
+                                "operand": {
+                                  "type": "string",
+                                  "value": "1992"
+                                }
+                              },
+                              {
+                                "operator": "ge",
+                                "operand": {
+                                  "type": "string",
+                                  "value": "1993"
+                                }
+                              }
+                            ]
+                          },
+                          {
+                            "operator": "ge",
+                            "operand": {
+                              "type": "string",
+                              "value": "1995"
+                            }
+                          }
+                        ]
                       }
                     }
                   ]
