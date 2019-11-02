@@ -457,7 +457,7 @@ void filesMerge(string file1, string file2, string path) {
     ifstream file_1;
     file_1.open(file1 + "/fileout.dat", ios_base::in | ios_base::binary);
     if (!file_1.is_open()) {
-        std::cout << "failed to open " << file1 + "/fileout.dat"<< '\n';
+        std::cout << "failed to open " << file1 + "/fileout.dat" << '\n';
     }
     unique_ptr<HeadReader> headreader1(new HeadReader());
     headreader1->readHeader(file_1);
@@ -466,7 +466,7 @@ void filesMerge(string file1, string file2, string path) {
     ifstream file_2;
     file_2.open(file2 + "/fileout.dat", ios_base::in | ios_base::binary);
     if (!file_2.is_open()) {
-        std::cout << "failed to open " << file2 + "/fileout.dat"<< '\n';
+        std::cout << "failed to open " << file2 + "/fileout.dat" << '\n';
     }
     unique_ptr<HeadReader> headreader2(new HeadReader());
     headreader2->readHeader(file_2);
@@ -477,7 +477,7 @@ void filesMerge(string file1, string file2, string path) {
     int blocksize = headreader1->getBlockSize();
     fo.open(path + "/fileout.dat", ios_base::out | ios_base::binary);
     if (!fo.is_open()) {
-        std::cout << "failed to open " << path + "/fileout.dat"<< '\n';
+        std::cout << "failed to open " << path + "/fileout.dat" << '\n';
     }
     long *foffsets = new long[column_num]();
     int rowcount = headreader1->getRowCount();
@@ -552,8 +552,10 @@ void filesMerge(string file1, string file2, string path) {
     fclose(fp);
 }
 
-void OLWriter(char *lineitemPath = "../res/tpch/lineitem.tbl", char *ordersPath = "../res/tpch/orders.tbl",char* lineitemResult="./lineitem",char* ordersResult="./orders",char* result=".",int blocksize=1024) {
-    fstream schema_f("../res/schema/nest.avsc", schema_f.binary | schema_f.in );
+void OLWriter(char *lineitemPath = "../res/tpch/lineitem.tbl", char *ordersPath = "../res/tpch/orders.tbl",
+              char *lineitemResult = "./lineitem", char *ordersResult = "./orders", char *result = ".",
+              int blocksize = 1024) {
+    fstream schema_f("../res/schema/nest.avsc", schema_f.binary | schema_f.in);
     ostringstream buf;
     char ch;
     while (buf && schema_f.get(ch))
@@ -580,8 +582,8 @@ void OLWriter(char *lineitemPath = "../res/tpch/lineitem.tbl", char *ordersPath 
     r[1] = new GenericRecord(c.value<GenericRecord>());
     fstream li(lineitemPath, ios::in);
     fstream od(ordersPath, ios::in);
-    if (!li.is_open()||!od.is_open()) {
-        std::cout << "failed to open " << lineitemPath <<"or"<<ordersPath<< '\n';
+    if (!li.is_open() || !od.is_open()) {
+        std::cout << "failed to open " << lineitemPath << "or" << ordersPath << '\n';
     }
     string lline;
     string oline;
@@ -820,8 +822,8 @@ void COLWriter() {
 
 void NestedReader(string datafile, string schemafile) {
     fstream schema_f(schemafile, schema_f.binary | schema_f.in);
-    if(!schema_f.is_open()){
-        cout<<schemafile<<"cannot open"<<endl;
+    if (!schema_f.is_open()) {
+        cout << schemafile << "cannot open" << endl;
     }
     ostringstream buf;
     char ch;
@@ -1095,8 +1097,8 @@ void LReader(string datafile, string schemafile, vector<int> rv) {
     cout << "record set: " << tracer.getRunTime() << endl;
     ifstream file_in;
     file_in.open(datafile, ios_base::in | ios_base::binary);
-    if(!file_in.is_open()){
-        cout<<"cannot open"<<datafile<<endl;
+    if (!file_in.is_open()) {
+        cout << "cannot open" << datafile << endl;
     }
     unique_ptr<HeadReader> headreader(new HeadReader());
     headreader->readHeader(file_in);
@@ -1111,7 +1113,7 @@ void LReader(string datafile, string schemafile, vector<int> rv) {
     int *rind = new int[16]();
     int *bind = new int[16]();
     int *rcounts = new int[16]();
-    vector<int> **offarrs=new vector<int>*[16];
+    vector<int> **offarrs = new vector<int> *[16];
     for (int l1 = 0; l1 < 16; ++l1) {
         rcounts[l1] = headreader->getColumn(l1 + 10).getBlock(bind[l1]).getRowcount();
     }
@@ -1122,14 +1124,14 @@ void LReader(string datafile, string schemafile, vector<int> rv) {
         blockreaders[j] = new Block(fpp[j], 0L, 0, blocksize);
         blockreaders[j]->loadFromFile();
     }
-    long max = headreader->getColumn(10+rv[0]).getblockCount();
+    long max = headreader->getColumn(10 + rv[0]).getblockCount();
     cout << "header rewind: " << tracer.getRunTime() << endl;
 
     int offsize;
-    if(blocksize<1<<8) offsize=1;
-    else if(blocksize<1<<16) offsize=2;
-    else if(blocksize<1<<24) offsize=3;
-    else if(blocksize<1<<32) offsize=4;
+    if (blocksize < 1 << 8) offsize = 1;
+    else if (blocksize < 1 << 16) offsize = 2;
+    else if (blocksize < 1 << 24) offsize = 3;
+    else if (blocksize < 1 << 32) offsize = 4;
 //    orderkey=blockreaders[i]->get<long>(rind[i]);
     int last = bind[rv[0]];
     for (; bind[rv[0]] < max;) {
@@ -1168,8 +1170,8 @@ void LReader(string datafile, string schemafile, vector<int> rv) {
                         rcounts[i] = headreader->getColumn(i + 10).getBlock(bind[i]).getRowcount();
                         bind[i]++;
                     }
-                    if(rind[i]==0){
-                        offarrs[i]=blockreaders[i]->initString(offsize);
+                    if (rind[i] == 0) {
+                        offarrs[i] = blockreaders[i]->initString(offsize);
                     }
                     char *tmp = blockreaders[i]->getoffstring((*offarrs[i])[rind[i]]);
 //                    char *tmp = blockreaders[i]->next<char *>();

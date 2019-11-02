@@ -5,7 +5,7 @@
 #ifndef UNTITLED_SCHEMA_H
 #define UNTITLED_SCHEMA_H
 
-typedef std::map <Name, NodePtr> SymbolMap;
+typedef std::map<Name, NodePtr> SymbolMap;
 
 static bool validate(const NodePtr &node, SymbolMap &symbolMap) {
     if (!node->isValid()) {
@@ -24,7 +24,7 @@ static bool validate(const NodePtr &node, SymbolMap &symbolMap) {
                 //node->name());
             }
 
-            shared_ptr <NodeSymbolic> symNode =
+            shared_ptr<NodeSymbolic> symNode =
                     static_pointer_cast<NodeSymbolic>(node);
 
             // if the symbolic link is already resolved, we return true,

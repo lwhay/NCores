@@ -195,7 +195,7 @@ private:
     bool locked_;
 };
 
-typedef std::map <Name, NodePtr> SymbolTable;
+typedef std::map<Name, NodePtr> SymbolTable;
 
 
 template<typename Attribute>
@@ -314,7 +314,7 @@ struct MultiAttribute {
 
 private:
 
-    std::vector <Attribute> attrs_;
+    std::vector<Attribute> attrs_;
 };
 
 template<typename T>
@@ -341,7 +341,7 @@ struct NameIndexConcept {
 
 template<>
 struct NameIndexConcept<MultiAttribute<std::string> > {
-    typedef std::map <std::string, size_t> IndexMap;
+    typedef std::map<std::string, size_t> IndexMap;
 
     bool lookup(const std::string &name, size_t &index) const {
         IndexMap::const_iterator iter = map_.find(name);
@@ -548,7 +548,7 @@ public:
 };
 
 class NodeSymbolic : public NodeImplSymbolic {
-    typedef std::weak_ptr <Node> NodeWeakPtr;
+    typedef std::weak_ptr<Node> NodeWeakPtr;
 
 public:
 
@@ -591,13 +591,13 @@ protected:
 };
 
 class NodeRecord : public NodeImplRecord {
-    std::vector <GenericDatum> defaultValues;
+    std::vector<GenericDatum> defaultValues;
 public:
     NodeRecord() : NodeImplRecord(AVRO_RECORD) {}
 
     NodeRecord(const HasName &name, const MultiLeaves &fields,
                const LeafNames &fieldsNames,
-               const std::vector <GenericDatum> &dv) :
+               const std::vector<GenericDatum> &dv) :
             NodeImplRecord(AVRO_RECORD, name, fields, fieldsNames, NoSize()),
             defaultValues(dv) {
         for (size_t i = 0; i < leafNameAttributes_.size(); ++i) {
