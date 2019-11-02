@@ -173,6 +173,11 @@ public:
         this->record = new GenericRecord(record.value<GenericRecord>());
         this->path = path;
         this->blocksize = blocksize;
+        if(blocksize<1<<8) offsize=1;
+        else if(blocksize<1<<16) offsize=2;
+        else if(blocksize<1<<24) offsize=3;
+        else if(blocksize<1<<32) offsize=4;
+        else cout<<"blocksize is too large"<<endl;
         column_num = this->record->fieldCount();
         head_files = (FILE **) (malloc(column_num * sizeof(FILE *)));
         data_files = (FILE **) (malloc(column_num * sizeof(FILE *)));
@@ -180,6 +185,7 @@ public:
         heads_info = (int **) (malloc(column_num * sizeof(int *)));
         head_index = new int[column_num]();
         data_index = new int[column_num]();
+        off_index = new vector<int>[column_num]();
         file_offset = new int[column_num]();
         block_num = new int[column_num]();
         strl = new int[column_num]();
@@ -191,15 +197,14 @@ public:
             heads_info[i] = new int[blocksize];
         }
         if(!head_files[0]) {
-            std::perror("File opening failed");
-            return EXIT_FAILURE;
+            cout<<("File opening failed");
         }
-
     }
 
 private:
     string path;
     int blocksize;
+    int offsize;
     GenericRecord *record;
     int column_num;
     FILE **data_files;
@@ -208,9 +213,11 @@ private:
     int **heads_info;
     int *data_index;
     int *head_index;
+    vector<int> *off_index;
     int *file_offset;
     int *block_num;
     int *strl;
+
 
     FILE *outfile;
 
@@ -229,12 +236,16 @@ private:
 
 public:
 
-    long getInd(int ind) {
-        return record->fieldAt(ind).value<long>();
+    int64_t getInd(int ind) {
+        return record->fieldAt(ind).value<int64_t >();
     }
 
     void setArr(int ind, vector<GenericDatum> arr) {
         record->fieldAt(ind).value<GenericArray>().value() = arr;
+    }
+
+    int getOffsize(){
+        return offsize;
     }
 
     GenericRecord getRecord() {
@@ -244,7 +255,7 @@ public:
     void setRecord(GenericRecord _record) {
         delete (record);
         this->record = new GenericRecord(_record);
-        int tmp = this->record->fieldAt(1).value<long>();
+        int tmp = this->record->fieldAt(1).value<int64_t>();
     }
 
 //    GenericDatum getRecord(){
@@ -267,7 +278,7 @@ public:
                     break;
                 }
                 case AVRO_LONG: {
-                    long tmp = stol(v[i]);
+                    int64_t tmp = stol(v[i]);
                     record->fieldAt(i) = tmp;
                     break;
                 }
@@ -313,9 +324,9 @@ public:
                     break;
                 }
                 case AVRO_LONG: {
-                    long tmp = record->fieldAt(i).value<long>();
-                    *(long *) (&(data_buffers[i][data_index[i]])) = tmp;
-                    data_index[i] += sizeof(long);
+                    int64_t tmp = record->fieldAt(i).value<int64_t >();
+                    *(int64_t *) (&(data_buffers[i][data_index[i]])) = tmp;
+                    data_index[i] += sizeof(int64_t);
                     int n = 0;
                     if (data_index[i] >= blocksize) {
                         if (i == 0) {
@@ -331,8 +342,8 @@ public:
                         fwrite(data_buffers[i], sizeof(char), blocksize, data_files[i]);
                         block_num[i]++;
                         memset(data_buffers[i], 0, blocksize * sizeof(char));
-                        heads_info[i][head_index[i]++] = blocksize / sizeof(long);
-                        file_offset[i] += blocksize / sizeof(long);
+                        heads_info[i][head_index[i]++] = blocksize / sizeof(int64_t);
+                        file_offset[i] += blocksize / sizeof(int64_t);
                         heads_info[i][head_index[i]++] = file_offset[i];
                         if (head_index[i] >= blocksize) {
                             fwrite(heads_info[i], sizeof(int), blocksize, head_files[i]);
@@ -404,8 +415,13 @@ public:
                 }
                 case AVRO_STRING: {
                     string tmp = record->fieldAt(i).value<string>();
-                    if ((data_index[i] + tmp.length() + 1) > blocksize) {
-                        fwrite(data_buffers[i], sizeof(char), blocksize, data_files[i]);
+                    if ((data_index[i] + tmp.length() + 1+offsize*strl[i]) > blocksize) {
+                        int tmpoff=offsize*strl[i];
+                        for (int j :off_index[i]) {
+                            int tmp=j+tmpoff;
+                            fwrite((char* )&tmp,offsize, sizeof(char),data_files[i]);
+                        }
+                        fwrite(data_buffers[i], sizeof(char), blocksize-tmpoff, data_files[i]);
                         block_num[i]++;
                         memset(data_buffers[i], 0, blocksize * sizeof(char));
                         heads_info[i][head_index[i]++] = strl[i];
@@ -413,12 +429,14 @@ public:
                         heads_info[i][head_index[i]++] = file_offset[i];
                         data_index[i] = 0;
                         strl[i] = 0;
+                        off_index[i].clear();
                         if (head_index[i] >= blocksize) {
                             fwrite(heads_info[i], sizeof(int), blocksize, head_files[i]);
                             memset(heads_info[i], 0, blocksize * sizeof(int));
                             head_index[i] = 0;
                         }
                     }
+                    off_index[i].push_back(data_index[i]);
                     std::strcpy(&data_buffers[i][data_index[i]], tmp.c_str());
                     data_index[i] += tmp.length() + 1;
                     strl[i]++;
@@ -571,7 +589,7 @@ public:
                             rcounts[i] = headreader->getColumns()[i].getBlock(bind[i]).getRowcount();
                             bind[i]++;
                         }
-                        long tmp = blockreaders[i]->next<long>();
+                        int64_t tmp = blockreaders[i]->next<int64_t>();
                         r[0]->fieldAt(i) = tmp;
                         //couttmp<<" ";
                         rind[i]++;
@@ -650,7 +668,7 @@ public:
                                             rcounts[k] = headreader->getColumns()[k].getBlock(bind[k]).getRowcount();
                                             bind[k]++;
                                         }
-                                        long tmp = blockreaders[k]->next<long>();
+                                        int64_t tmp = blockreaders[k]->next<int64_t>();
                                         r[1]->fieldAt(k - 10) = tmp;
                                         //couttmp<<" ";
                                         rind[k]++;
@@ -737,7 +755,7 @@ public:
                             rcounts[i] = headreader->getColumns()[i].getBlock(bind[i]).getRowcount();
                             bind[i]++;
                         }
-                        long tmp = blockreaders[i]->next<long>();
+                        int64_t tmp = blockreaders[i]->next<int64_t>();
                         r[0]->fieldAt(i) = tmp;
                         cout << tmp << " ";
                         rind[i]++;
@@ -816,7 +834,7 @@ public:
                                             rcounts[k] = headreader->getColumns()[k].getBlock(bind[k]).getRowcount();
                                             bind[k]++;
                                         }
-                                        long tmp = blockreaders[k]->next<long>();
+                                        int64_t tmp = blockreaders[k]->next<int64_t>();
                                         r[1]->fieldAt(k - 10) = tmp;
                                         cout << tmp << " ";
                                         rind[k]++;

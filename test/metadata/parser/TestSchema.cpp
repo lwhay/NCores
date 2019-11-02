@@ -18,6 +18,8 @@
 #include "utils.h"
 #include "BatchFileWriter.h"
 
+#define DEBUG 1
+
 class Node;
 
 class GenericFixed;
@@ -451,481 +453,6 @@ static NodePtr makeNode(const Entity &e, SymbolTable &st, const string &ns) {
     }
 }
 
-void SplitString(const std::string &s, std::vector<std::string> &v, const std::string &c) {
-    std::string::size_type pos1, pos2;
-    pos2 = s.find(c);
-    pos1 = 0;
-    while (std::string::npos != pos2) {
-        v.push_back(s.substr(pos1, pos2 - pos1));
-        pos1 = pos2 + c.size();
-        pos2 = s.find(c, pos1);
-    }
-    if (pos1 != s.length())
-        v.push_back(s.substr(pos1));
-}
-
-void ReadRecord(GenericRecord &record, const std::string &s) {
-    vector<string> v;
-    SplitString(s, v, "|");
-    for (vector<string>::size_type i = 0; i != v.size(); ++i) {
-        switch (record.fieldAt(i).type()) {
-            case AVRO_INT: {
-                int tmp = stoi(v[i]);
-                record.fieldAt(i) = tmp;
-                break;
-            }
-            case AVRO_FLOAT: {
-                float tmp = stof(v[i]);
-                record.fieldAt(i) = tmp;
-                break;
-            }
-            case AVRO_LONG: {
-                long tmp = stol(v[i]);
-                record.fieldAt(i) = tmp;
-                break;
-            }
-            case AVRO_DOUBLE: {
-                double tmp = stod(v[i]);
-                record.fieldAt(i) = tmp;
-                break;
-            }
-            case AVRO_BYTES: {
-                char tmp = ((char *) v[i].c_str())[0];
-                record.fieldAt(i) = tmp;
-                break;
-            }
-
-            case AVRO_STRING: {
-                record.fieldAt(i) = v[i];
-                break;
-            }
-        }
-    }
-}
-
-void FilesMerge(int culnum, string schema, int *blockcounts, char **buffers, FILE **files,
-                FILE **heads, int **headsinfo) {
-    fstream fo;
-    fo.open("./fileout.dat", ios_base::out | ios_base::binary);
-    long *foffsets = new long[culnum];
-    int blocksize = 1024;
-    int rowcount = 0;
-    fo.write((char *) &blocksize, sizeof(blocksize));
-    fo.write((char *) &rowcount, sizeof(rowcount));
-    fo.write((char *) &culnum, sizeof(culnum));
-    fo << schema;
-    long *result = new long[culnum];
-    std::vector<int> bc(2);
-    for (int j = 0; j < culnum; ++j) {
-        fo.write((char *) &blockcounts[j], sizeof(int));
-        foffsets[j] = fo.tellg();
-        fo.write((char *) &foffsets[j], sizeof(long));
-        for (int i = 0; i < blockcounts[j]; ++i) {
-            fread(&bc[0], sizeof bc[0], bc.size(), heads[j]);
-            fo.write((char *) &bc[0], sizeof bc[0]);
-            fo.write((char *) &bc[1], sizeof bc[1]);
-        }
-    }
-    result[0] = fo.tellg();
-    fo.close();
-    FILE *fp = fopen("./fileout.dat", "ab+");
-    char *buffer = new char[1024];
-    for (int j = 0; j < culnum; ++j) {
-        if (j != 0)result[j] = ftell(fp);
-        for (int i = 0; i < blockcounts[j]; ++i) {
-            fread(buffer, sizeof(char), 1024, files[j]);
-            fwrite(buffer, sizeof(char), 1024, fp);
-        }
-    }
-    fflush(fp);
-    fclose(fp);
-    fp = fopen("./fileout.dat", "rb+");
-    for (int m = 0; m < culnum; ++m) {
-        fseek(fp, foffsets[m], SEEK_SET);
-        fwrite((char *) &result[m], sizeof(result[m]), 1, fp);
-    }
-    fflush(fp);
-    fclose(fp);
-}
-
-void RecordWritetoFile(int culnum, GenericRecord *record, int *index, int *hindex, int *offsets, int *blockcounts,
-                       char **buffers, FILE **files,
-                       FILE **heads, int **headsinfo, int *strl) {
-    for (int k = 0; k < culnum; ++k) {
-        switch (record->fieldAt(k).type()) {
-            case AVRO_INT: {
-                int tmp = record->fieldAt(k).value<int>();
-                *(int *) (&buffers[k][index[k]]) = tmp;
-                index[k] += sizeof(int);
-                if (index[k] >= 1024) {
-                    index[k] = 0;
-                    fwrite(buffers[k], sizeof(char), 1024, files[k]);
-                    blockcounts[k]++;
-                    memset(buffers[k], 0, 1024 * sizeof(char));
-                    headsinfo[k][hindex[k]++] = 1024 / sizeof(int);
-                    offsets[k] += 1024 / sizeof(int);
-                    headsinfo[k][hindex[k]++] = offsets[k];
-                    if (hindex[k] >= 1024) {
-                        fwrite(headsinfo[k], sizeof(int), 1024, heads[k]);
-                        memset(headsinfo[k], 0, 1024 * sizeof(int));
-                        hindex[k] = 0;
-                    }
-                }
-                break;
-            }
-            case AVRO_LONG: {
-                long tmp = record->fieldAt(k).value<long>();
-                *(long *) (&(buffers[k][index[k]])) = tmp;
-                index[k] += sizeof(long);
-                int n = 0;
-                if (index[k] >= 1024) {
-                    if (k == 0) {
-//                        if(n==0){
-//                            long* tmp_l=(long*)(buffers[0]);
-//                            for (int i = 0; i <1024/ sizeof(long) ; ++i) {
-//                                cout<<*tmp_l<<" ";
-//                                tmp_l++;
-//                            }
-//                        }
-                    }
-                    index[k] = 0;
-                    fwrite(buffers[k], sizeof(char), 1024, files[k]);
-                    blockcounts[k]++;
-                    memset(buffers[k], 0, 1024 * sizeof(char));
-                    headsinfo[k][hindex[k]++] = 1024 / sizeof(long);
-                    offsets[k] += 1024 / sizeof(long);
-                    headsinfo[k][hindex[k]++] = offsets[k];
-                    if (hindex[k] >= 1024) {
-                        fwrite(headsinfo[k], sizeof(int), 1024, heads[k]);
-                        memset(headsinfo[k], 0, 1024 * sizeof(int));
-                        hindex[k] = 0;
-                    }
-                }
-                break;
-            }
-            case AVRO_DOUBLE: {
-                double tmp = record->fieldAt(k).value<double>();
-                *(double *) (&buffers[k][index[k]]) = tmp;
-                index[k] += sizeof(double);
-                if (index[k] >= 1024) {
-                    index[k] = 0;
-                    fwrite(buffers[k], sizeof(char), 1024, files[k]);
-                    blockcounts[k]++;
-                    memset(buffers[k], 0, 1024 * sizeof(char));
-                    headsinfo[k][hindex[k]++] = 1024 / sizeof(double);
-                    offsets[k] += 1024 / sizeof(double);
-                    headsinfo[k][hindex[k]++] = offsets[k];
-                    if (hindex[k] >= 1024) {
-                        fwrite(headsinfo[k], sizeof(int), 1024, heads[k]);
-                        memset(headsinfo[k], 0, 1024 * sizeof(int));
-                        hindex[k] = 0;
-                    }
-                }
-                break;
-            }
-            case AVRO_FLOAT: {
-                float tmp = record->fieldAt(k).value<float>();
-                *(float *) (&buffers[k][index[k]]) = tmp;
-                index[k] += sizeof(float);
-                if (index[k] >= 1024) {
-                    index[k] = 0;
-                    fwrite(buffers[k], sizeof(char), 1024, files[k]);
-                    blockcounts[k]++;
-                    memset(buffers[k], 0, 1024 * sizeof(char));
-                    headsinfo[k][hindex[k]++] = 1024 / sizeof(float);
-                    offsets[k] += 1024 / sizeof(float);
-                    headsinfo[k][hindex[k]++] = offsets[k];
-                    if (hindex[k] >= 1024) {
-                        fwrite(headsinfo[k], sizeof(int), 1024, heads[k]);
-                        memset(headsinfo[k], 0, 1024 * sizeof(int));
-                        hindex[k] = 0;
-                    }
-                }
-                break;
-            }
-            case AVRO_BYTES: {
-                char tmp = record->fieldAt(k).value<char>();
-                *(char *) (&buffers[k][index[k]]) = tmp;
-                index[k] += sizeof(char);
-                if (index[k] >= 1024) {
-                    index[k] = 0;
-                    fwrite(buffers[k], sizeof(char), 1024, files[k]);
-                    blockcounts[k]++;
-                    memset(buffers[k], 0, 1024 * sizeof(char));
-                    headsinfo[k][hindex[k]++] = 1024 / sizeof(char);
-                    offsets[k] += 1024 / sizeof(char);
-                    headsinfo[k][hindex[k]++] = offsets[k];
-                    if (hindex[k] >= 1024) {
-                        fwrite(headsinfo[k], sizeof(char), 1024, heads[k]);
-                        memset(headsinfo[k], 0, 1024 * sizeof(char));
-                        hindex[k] = 0;
-                    }
-                }
-                break;
-            }
-            case AVRO_STRING: {
-                string tmp = record->fieldAt(k).value<string>();
-                if ((index[k] + tmp.length() + 1) > 1024) {
-                    fwrite(buffers[k], sizeof(char), 1024, files[k]);
-                    blockcounts[k]++;
-                    memset(buffers[k], 0, 1024 * sizeof(char));
-                    headsinfo[k][hindex[k]++] = strl[k];
-                    offsets[k] += strl[k];
-                    headsinfo[k][hindex[k]++] = offsets[k];
-                    index[k] = 0;
-                    strl[k] = 0;
-                    if (hindex[k] >= 1024) {
-                        fwrite(headsinfo[k], sizeof(int), 1024, heads[k]);
-                        memset(headsinfo[k], 0, 1024 * sizeof(int));
-                        hindex[k] = 0;
-                    }
-                }
-                std::strcpy(&buffers[k][index[k]], tmp.c_str());
-                index[k] += tmp.length() + 1;
-                strl[k]++;
-                break;
-            }
-        }
-    }
-}
-
-void testFILE() {
-    FILE *fp = fopen("./file0.dat", "ab+");
-    char *test_0 = new char[1024];
-    fread(test_0, sizeof(char), 1024, fp);
-
-    long *tmp_l = (long *) (test_0);
-    int k = 0;
-    for (int i = 0; i < 1024 / sizeof(long); ++i) {
-        cout << *tmp_l << " ";
-        tmp_l++;
-        k++;
-    }
-    cout << "the num:" << k << " " << endl;
-    fread(test_0, sizeof(char), 1024, fp);
-    tmp_l = (long *) (test_0);
-    for (int i = 0; i < 1024 / sizeof(long); ++i) {
-        cout << *tmp_l << " ";
-        tmp_l++;
-    }
-    fclose(fp);
-}
-
-void testFILEWRITER() {
-    fstream schema_f("../res/schema/nest.avsc", schema_f.binary | schema_f.in | schema_f.out);
-    ostringstream buf;
-    char ch;
-    while (buf && schema_f.get(ch))
-        buf.put(ch);
-    string s_schema = buf.str();
-    char *schema = const_cast<char *>(s_schema.c_str());
-    JsonParser *test = new JsonParser();
-    test->init(schema);
-    Entity e_test = readEntity(*test);
-    SymbolTable st;
-    NodePtr n = makeNode(e_test, st, "");
-    ValidSchema *vschema = new ValidSchema(n);
-    GenericDatum c;
-    c = GenericDatum(vschema->root());
-    GenericRecord *r[2] = {NULL};
-    r[0] = new GenericRecord(c.value<GenericRecord>());
-    c = GenericDatum(r[0]->fieldAt(9).value<GenericArray>().schema()->leafAt(0));
-    r[1] = new GenericRecord(c.value<GenericRecord>());
-    //initialize the schema and record
-
-    char *filename = (char *) malloc(strlen("./file") + 6);
-    char *headname = (char *) malloc(strlen("./file") + 10);
-    int culnum = r[0]->fieldCount() + r[1]->fieldCount();
-    FILE **files = (FILE **) (malloc(culnum * sizeof(FILE *)));
-    FILE **heads = (FILE **) (malloc(culnum * sizeof(FILE *)));
-    char **buffers = (char **) (malloc(culnum * sizeof(char *)));
-    int **headsinfo = (int **) (malloc(culnum * sizeof(int *)));
-    int *index = new int[culnum];
-    int *hindex = new int[culnum];
-    int *offsets = new int[culnum];
-    int *blockcounts = new int[culnum];
-
-
-    memset(index, 0, culnum * sizeof(int));
-    memset(hindex, 0, culnum * sizeof(int));
-    memset(offsets, 0, culnum * sizeof(int));
-    memset(blockcounts, 0, culnum * sizeof(int));
-    for (int k = 0; k < culnum; ++k) {
-        sprintf(filename, "%s%d%s", "./file", k, ".dat");
-        sprintf(headname, "%s%d%s", "./file", k, ".head");
-        heads[k] = fopen(headname, "wb+");
-        files[k] = fopen(filename, "wb+");
-        buffers[k] = new char[1024];
-        headsinfo[k] = new int[1024];
-    }
-    //initialize the files and variables0
-
-    int *strl = new int[culnum];
-    fstream fs("../res/tpch/lineitem.tbl", ios::in);
-    for (std::string line; std::getline(fs, line);) {
-        ReadRecord(*r[0], line);
-        RecordWritetoFile(culnum, r[0], index, hindex, offsets, blockcounts, buffers, files,
-                          heads, headsinfo, strl);
-    }
-    for (int k = 0; k < culnum; ++k) {
-        if (index[k] != 0) {
-            fwrite(buffers[k], sizeof(char), 1024, files[k]);
-            blockcounts[k]++;
-        }
-        if (hindex[k] != 0) {
-            fwrite(headsinfo[k], sizeof(int), 1024, heads[k]);
-        }
-    }
-    for (int l = 0; l < culnum; ++l) {
-        fflush(files[l]);
-        fflush(heads[l]);
-        fclose(files[l]);
-        fclose(heads[l]);
-    }
-    //    write to the split_files
-
-
-    for (int k = 0; k < culnum; ++k) {
-        sprintf(filename, "%s%d%s", "./file", k, ".dat");
-        sprintf(headname, "%s%d%s", "./file", k, ".head");
-        heads[k] = fopen(headname, "rb");
-        files[k] = fopen(filename, "rb");
-    }
-    FilesMerge(culnum, schema, blockcounts, buffers, files,
-               heads, headsinfo);
-    for (int l = 0; l < culnum; ++l) {
-        fclose(files[l]);
-        fclose(heads[l]);
-    }
-    std::free(files);
-    std::free(heads);
-    std::free(buffers);
-    std::free(headsinfo);
-    //files merge
-}
-
-void testFileReader() {
-    fstream schema_f("../res/schema/single.avsc", schema_f.binary | schema_f.in | schema_f.out);
-    ostringstream buf;
-    char ch;
-    while (buf && schema_f.get(ch))
-        buf.put(ch);
-    string s_schema = buf.str();
-    char *schema = const_cast<char *>(s_schema.c_str());
-    JsonParser *test = new JsonParser();
-    test->init(schema);
-    Entity e_test = readEntity(*test);
-    SymbolTable st;
-    NodePtr n = makeNode(e_test, st, "");
-    ValidSchema *vschema = new ValidSchema(n);
-    GenericDatum c;
-    c = GenericDatum(vschema->root());
-    GenericRecord *r[1] = {NULL};
-    for (int i = 0; i < 1; i++) {
-        r[i] = new GenericRecord(c.value<GenericRecord>());
-    }
-    ifstream file_in;
-    file_in.open("./fileout.dat", ios_base::in | ios_base::binary);
-    unique_ptr<HeadReader> headreader(new HeadReader());
-    headreader->readHeader(file_in);
-    file_in.close();
-    FILE *fpr = fopen("./fileout.dat", "rb");
-    int blocksize = 1024;
-    for (int j = 0; j < 1; ++j) {
-        int count = 0;
-        fseek(fpr, headreader->getColumns()[j].getOffset(), SEEK_SET);
-        switch (r[0]->fieldAt(j).type()) {
-            case AVRO_INT: {
-                PrimitiveBlock<int> *intBlock = new PrimitiveBlock<int>(fpr, 0L, 0, blocksize);
-                int bcount = headreader->getColumns()[j].getblockCount();
-                for (int k = 0; k < bcount; k++) {
-                    intBlock->loadFromFile();
-                    int rcount = headreader->getColumns()[j].getBlocks()[k].getRowcount();
-                    for (int i = 0; i < blocksize / sizeof(long); i++) {
-                        count++;
-                    }
-                }
-                delete intBlock;
-                break;
-            }
-            case AVRO_LONG: {
-                PrimitiveBlock<long> *longBlock = new PrimitiveBlock<long>(fpr, 0L, 0, blocksize);
-                int bcount = headreader->getColumns()[j].getblockCount();
-                vector<BlockReader> brs = headreader->getColumns()[j].getBlocks();
-                Tracer tracer;
-                tracer.startTime();
-                for (int k = 0; k < bcount; k++) {
-                    longBlock->loadFromFile();
-                    int rcount = brs[k].getRowcount();
-                    for (int i = 0; i < rcount; i++) {
-                        //count++;
-                        longBlock->get(i);
-                    }
-                }
-                cout << "Long: " << tracer.getRunTime() << "\t" << endl;
-                delete longBlock;
-                break;
-            }
-            case AVRO_DOUBLE: {
-                PrimitiveBlock<double> *doubleBlock = new PrimitiveBlock<double>(fpr, 0L, 0, blocksize);
-                int bcount = headreader->getColumns()[j].getblockCount();
-                for (int k = 0; k < bcount; k++) {
-                    doubleBlock->loadFromFile();
-                    int rcount = headreader->getColumns()[j].getBlocks()[k].getRowcount();
-                    for (int i = 0; i < blocksize / sizeof(long); i++) {
-                        count++;
-                    }
-                }
-                delete doubleBlock;
-                break;
-            }
-            case AVRO_FLOAT: {
-                PrimitiveBlock<float> *floatBlock = new PrimitiveBlock<float>(fpr, 0L, 0, blocksize);
-                int bcount = headreader->getColumns()[j].getblockCount();
-                for (int k = 0; k < bcount; k++) {
-                    floatBlock->loadFromFile();
-                    int rcount = headreader->getColumns()[j].getBlocks()[k].getRowcount();
-                    for (int i = 0; i < blocksize / sizeof(long); i++) {
-                        count++;
-                    }
-                }
-                delete floatBlock;
-                break;
-            }
-            case AVRO_BYTES: {
-                PrimitiveBlock<char> *byteBlock = new PrimitiveBlock<char>(fpr, 0L, 0, blocksize);
-                int bcount = headreader->getColumns()[j].getblockCount();
-                for (int k = 0; k < bcount; k++) {
-                    byteBlock->loadFromFile();
-                    int rcount = headreader->getColumns()[j].getBlocks()[k].getRowcount();
-                    for (int i = 0; i < rcount; i++) {
-                        byteBlock->get(i);
-                        count++;
-                    }
-                }
-                delete byteBlock;
-                break;
-            }
-            case AVRO_STRING: {
-                PrimitiveBlock<char *> *stringBlock = new PrimitiveBlock<char *>(fpr, 0L, 0, blocksize);
-                int bcount = headreader->getColumns()[j].getblockCount();
-                for (int k = 0; k < bcount; k++) {
-                    stringBlock->loadFromFile();
-                    int rcount = headreader->getColumns()[j].getBlocks()[k].getRowcount();
-                    for (int i = 0; i < rcount; i++) {
-                        stringBlock->get(i);
-                        if (j == 15)
-                            cout << stringBlock->get(i) << endl;
-                        count++;
-                    }
-                }
-                delete stringBlock;
-                break;
-            }
-        }
-    }
-}
-
 void filesMerge(string file1, string file2, string path) {
     ifstream file_1;
     file_1.open(file1 + "/fileout.dat", ios_base::in | ios_base::binary);
@@ -1026,7 +553,7 @@ void filesMerge(string file1, string file2, string path) {
 }
 
 void OLWriter(char *lineitemPath = "../res/tpch/lineitem.tbl", char *ordersPath = "../res/tpch/orders.tbl",char* lineitemResult="./lineitem",char* ordersResult="./orders",char* result=".",int blocksize=1024) {
-    fstream schema_f("../res/schema/nest.avsc", schema_f.binary | schema_f.in | schema_f.out);
+    fstream schema_f("../res/schema/nest.avsc", schema_f.binary | schema_f.in );
     ostringstream buf;
     char ch;
     while (buf && schema_f.get(ch))
@@ -1584,22 +1111,28 @@ void LReader(string datafile, string schemafile, vector<int> rv) {
     int *rind = new int[16]();
     int *bind = new int[16]();
     int *rcounts = new int[16]();
+    vector<int> **offarrs=new vector<int>*[16];
     for (int l1 = 0; l1 < 16; ++l1) {
         rcounts[l1] = headreader->getColumn(l1 + 10).getBlock(bind[l1]).getRowcount();
     }
     cout << "header set: " << tracer.getRunTime() << endl;
-    int blocksize = 1024;
+    int blocksize = headreader->getBlockSize();
     Block *blockreaders[16];
     for (int j = 0; j < 16; ++j) {
         blockreaders[j] = new Block(fpp[j], 0L, 0, blocksize);
         blockreaders[j]->loadFromFile();
     }
-    long max = headreader->getColumn(10).getblockCount();
+    long max = headreader->getColumn(10+rv[0]).getblockCount();
     cout << "header rewind: " << tracer.getRunTime() << endl;
 
+    int offsize;
+    if(blocksize<1<<8) offsize=1;
+    else if(blocksize<1<<16) offsize=2;
+    else if(blocksize<1<<24) offsize=3;
+    else if(blocksize<1<<32) offsize=4;
 //    orderkey=blockreaders[i]->get<long>(rind[i]);
-    int last = bind[0];
-    for (; bind[0] < max;) {
+    int last = bind[rv[0]];
+    for (; bind[rv[0]] < max;) {
         for (int i :rv) {
             switch (r[1]->fieldAt(i).type()) {
                 case AVRO_LONG: {
@@ -1635,9 +1168,15 @@ void LReader(string datafile, string schemafile, vector<int> rv) {
                         rcounts[i] = headreader->getColumn(i + 10).getBlock(bind[i]).getRowcount();
                         bind[i]++;
                     }
-                    char *tmp = blockreaders[i]->next<char *>();
+                    if(rind[i]==0){
+                        offarrs[i]=blockreaders[i]->initString(offsize);
+                    }
+                    char *tmp = blockreaders[i]->getoffstring((*offarrs[i])[rind[i]]);
+//                    char *tmp = blockreaders[i]->next<char *>();
                     r[1]->fieldAt(i) = tmp;
-//                    cout << tmp << " ";
+#ifdef DEBUG
+                    cout << tmp << " ";
+#endif
                     rind[i]++;
                     break;
                 }
@@ -1668,14 +1207,18 @@ void LReader(string datafile, string schemafile, vector<int> rv) {
                     break;
                 }
             }
-//            if (i == 15) {
-//                cout << endl;
-//            }
+#ifdef DEBUG
+            if (i == 15) {
+                cout << endl;
+            }
+#endif
         }
+#ifdef DEBUG
         if (bind[0] != last && bind[0] % 1000 == 0) {
             cout << "\t" << bind[0] << ":" << tracer.getRunTime() << endl;
             last = bind[0];
         }
+#endif
     }
     for (int i1 = 0; i1 < 16; ++i1) {
         fclose(fpp[i1]);
@@ -1740,7 +1283,7 @@ void fileTest() {
 }
 
 int main(int argc, char **argv) {
-    if (argc > 3) {
+    if (argc == 3) {
         OLWriter(argv[1], argv[2]);
     } else {
 //    testFILEWRITER();
@@ -1759,7 +1302,7 @@ int main(int argc, char **argv) {
 //            tmp.push_back(i);
 //        }
 
-        //tmp.push_back(15);
+        tmp.push_back(15);
         LReader("./fileout.dat", "../res/schema/nest.avsc", tmp);
         cout << "flat: " << tracer.getRunTime() << endl;
 //    fileTest();
