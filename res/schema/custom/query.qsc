@@ -1,0 +1,87 @@
+{
+  "type": "record",
+  "name": "Customer",
+  "fields": [
+    {
+      "name": "c_custkey",
+      "clause": "fetch"
+    },
+    {
+      "name": "c_name",
+      "clause": "fetch"
+    },
+    {
+      "name": "c_acctbal",
+      "clause": "filter",
+      "body": {
+        "operator": "ge",
+        "operand": {
+          "type": "float",
+          "value": 0.01
+        }
+      }
+    },
+    {
+      "name": "OrderList",
+      "type": {
+        "type": "array",
+        "items": {
+          "type": "record",
+          "name": "Order",
+          "fields": [
+            {
+              "name": "o_orderkey",
+              "clause": "fetch"
+            },
+            {
+              "name": "o_totalprice",
+              "clause": "fetch"
+            },
+            {
+              "name": "o_orderdate",
+              "clause": "filter",
+              "body": {
+                "operator": "contains",
+                "operand": {
+                  "type": "string",
+                  "value": "1992"
+                }
+              }
+            },
+            {
+              "name": "LineitemList",
+              "type": {
+                "type": "array",
+                "items": {
+                  "type": "record",
+                  "name": "Lineitem",
+                  "fields": [
+                    {
+                      "name": "l_partkey",
+                      "clause": "fetch"
+                    },
+                    {
+                      "name": "l_suppkey",
+                      "clause": "fetch"
+                    },
+                    {
+                      "name": "l_shipdate",
+                      "clause": "filter",
+                      "body": {
+                        "operator": "lt",
+                        "operand": {
+                          "type": "string",
+                          "value": "1993"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        }
+      }
+    }
+  ]
+}
