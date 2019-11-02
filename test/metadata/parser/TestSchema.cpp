@@ -18,7 +18,7 @@
 #include "utils.h"
 #include "BatchFileWriter.h"
 
-#define DEBUG 1
+//#define DEBUG 1
 
 class Node;
 
@@ -1116,6 +1116,7 @@ void LReader(string datafile, string schemafile, vector<int> rv) {
     vector<int> **offarrs = new vector<int> *[16];
     for (int l1 = 0; l1 < 16; ++l1) {
         rcounts[l1] = headreader->getColumn(l1 + 10).getBlock(bind[l1]).getRowcount();
+        bind[l1]++;
     }
     cout << "header set: " << tracer.getRunTime() << endl;
     int blocksize = headreader->getBlockSize();
@@ -1300,11 +1301,11 @@ int main(int argc, char **argv) {
         system("echo 3 > /proc/sys/vm/drop_caches");
         tracer.startTime();
         vector<int> tmp;
-//        for (int i = 0; i < 16; i++) {
-//            tmp.push_back(i);
-//        }
+        for (int i = 0; i < 16; i++) {
+            tmp.push_back(i);
+        }
 
-        tmp.push_back(15);
+//        tmp.push_back(15);
         LReader("./fileout.dat", "../res/schema/nest.avsc", tmp);
         cout << "flat: " << tracer.getRunTime() << endl;
 //    fileTest();

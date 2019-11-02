@@ -1,6 +1,7 @@
 //
 // Created by Michael on 2018/12/2.
 //
+#include <vector>
 #include "BlockCache.h"
 #include "utils.h"
 
