@@ -33,6 +33,114 @@ typedef std::map<std::string, Entity> Object;
 
 typedef std::shared_ptr<Node> NodePtr;
 
+enum FilterType {
+    ftSelect,
+    ftGt,
+    ftLt,
+    ftGe,
+    ftLe,
+    ftCj,
+    ftDj,
+    ftInvalid
+};
+
+struct fNode {
+    string strdata;
+    long ldata;
+    double ddata;
+    FilterType ft;
+    fNode *L;
+    fNode *R;
+
+    fNode() {}
+
+    fNode(const string &d, FilterType _ft = ftInvalid) : strdata(d), L(), R(), ft(_ft) {}
+
+    fNode(const long &d, FilterType _ft = ftInvalid) : ldata(d), L(), R(), ft(_ft) {}
+
+    fNode(const double &d, FilterType _ft = ftInvalid) : ddata(d), L(), R(), ft(_ft) {}
+
+    fNode(const string &d, fNode *l, fNode *r, FilterType _ft) : strdata(d), L(l), R(r), ft(_ft) {}
+
+    fNode(const long &d, fNode *l, fNode *r, FilterType _ft) : L(l), R(r), ldata(d), ft(_ft) {}
+
+    fNode(const double &d, fNode *l, fNode *r, FilterType _ft) : L(l), R(r), ddata(d), ft(_ft) {}
+
+    fNode(fNode *l, fNode *r, FilterType _ft) : L(l), R(r), ft(_ft) {}
+
+
+    ~fNode() {}
+
+    void setFt(FilterType _ft) {
+        ft = _ft;
+    }
+
+    bool filter(long value) {
+        switch (ft) {
+            case ftCj:
+                return L->filter(value) & R->filter(value);
+            case ftDj:
+                return L->filter(value) | R->filter(value);
+            case ftGt:
+                return value > ldata;
+            case ftGe:
+                return value >= ldata;
+            case ftLt:
+                return value < ldata;
+            case ftLe:
+                return value <= ldata;
+            default:
+                cout << "don't support this filter" << endl;
+                return false;
+        }
+    }
+
+    bool filter(double value) {
+        switch (ft) {
+            case ftCj:
+                return L->filter(value) & R->filter(value);
+            case ftDj:
+                return L->filter(value) | R->filter(value);
+            case ftGt:
+                return value > ddata;
+            case ftGe:
+                return value >= ddata;
+            case ftLt:
+                return value < ddata;
+            case ftLe:
+                return value <= ddata;
+            default:
+                cout << "don't support this filter" << endl;
+                return false;
+        }
+    }
+};
+
+struct ColMeta {
+    string pname;
+    int select;
+    fNode *fn;
+
+
+    ColMeta(const string &n = "", int i = 0, fNode *_fn = NULL) :
+            pname(const_cast<string &>(n)), select(i), fn(_fn) {}
+
+    ColMeta(const ColMeta &cm) {
+        this->pname = cm.pname;
+        this->select = cm.select;
+        this->fn = cm.fn;
+    }
+
+    ColMeta &operator=(ColMeta &other) {
+        pname = other.pname;
+        select = other.select;
+        this->fn = other.fn;
+    }
+
+};
+
+typedef std::map<string, ColMeta> FetchTable;
+
 static NodePtr makePrimitive(const std::string &t) {
     if (t == "null") {
         return NodePtr(new NodePrimitive(AVRO_NULL));
@@ -66,6 +174,20 @@ static Name getName(const string &name, const string &ns) {
     return (isFullName(name)) ? Name(name) : Name(name, ns);
 }
 
+static void makeFetch(const std::string &t, FetchTable &st, const string &ns) {
+    NodePtr result = makePrimitive(t);
+    if (result) {
+    }
+
+    FetchTable::const_iterator it = st.find(t);
+    if (it != st.end()) {
+        cout << "exception" << endl;
+    }
+
+
+    //throw Exception(boost::format("Unknown type: %1%") % n.fullname());
+}
+
 static NodePtr makeNode(const std::string &t, SymbolTable &st, const string &ns) {
     NodePtr result = makePrimitive(t);
     if (result) {
@@ -75,6 +197,7 @@ static NodePtr makeNode(const std::string &t, SymbolTable &st, const string &ns)
 
     SymbolTable::const_iterator it = st.find(n);
     if (it != st.end()) {
+
         return NodePtr(new NodeSymbolic(asSingleAttribute(n), it->second));
     }
     //throw Exception(boost::format("Unknown type: %1%") % n.fullname());
@@ -84,8 +207,8 @@ const Object::const_iterator findField(const Entity &e,
                                        const Object &m, const string &fieldName) {
     Object::const_iterator it = m.find(fieldName);
     if (it == m.end()) {
-//        throw Exception(std::format("Missing Json field \"%1%\": %2%") %
-//                        fieldName % e.toString());
+        cout << "exception" << endl;
+//        return NULL;
     } else {
         return it;
     }
@@ -130,7 +253,7 @@ struct Field {
     const NodePtr schema;
     const GenericDatum defaultValue;
 
-    Field(const string &n, const NodePtr &v, GenericDatum dv) :
+    Field(const string &n, const NodePtr &v, GenericDatum dv = GenericDatum()) :
             name(n), schema(v), defaultValue(dv) {}
 };
 
@@ -204,6 +327,15 @@ public:
         return false;
     }
 };
+
+
+static void makeFetch(const Entity &e, FetchTable &st, const string &ns);
+
+static void makeFetch(const Entity &e, const Array &m, FetchTable &st, const string &ns) {
+    for (auto it = m.begin(); it != m.end(); ++it) {
+        makeFetch(*it, st, ns);
+    }
+}
 
 static NodePtr makeNode(const Entity &e, SymbolTable &st, const string &ns);
 
@@ -340,6 +472,88 @@ static GenericDatum makeGenericDatum(NodePtr n, const Entity &e, const SymbolTab
     return GenericDatum();
 }
 
+static fNode *getBody(const Object &m) {
+    Object::const_iterator it = m.find("composite");
+    if (it != m.end()) {
+        fNode *fn;
+        const string &com = it->second.stringValue();
+        if (com.compare("conjunctive") == 0) {
+            it = m.find("condition");
+            Array arr = it->second.arrayValue();
+            fn = new fNode(getBody(arr[0].objectValue()), getBody(arr[1].objectValue()), ftCj);
+        } else if (com.compare("disjuncitve") == 0) {
+            it = m.find("condition");
+            Array arr = it->second.arrayValue();
+            fn = new fNode(getBody(arr[0].objectValue()), getBody(arr[1].objectValue()), ftDj);
+        }
+        return fn;
+//        else if(com.compare("negative")==0){
+//            it = m.find("condition");
+//            Array arr=it->second.arrayValue();
+//            fn=new fNode(getBody(arr[0].objectValue()),ft);
+//        }
+    } else if ((it = m.find("operator")) != m.end()) {
+        const string &ope = it->second.stringValue();
+        it = m.find("operand");
+        const Object &opr = it->second.objectValue();
+        Object::const_iterator ito = opr.find("type");
+        fNode *fn;
+        if (ito->second.stringValue().compare("double")) {
+            ito = opr.find("value");
+            double tmp = ito->second.doubleValue();
+            fn = new fNode(tmp);
+        } else if (ito->second.stringValue().compare("float")) {
+            ito = opr.find("value");
+            double tmp = ito->second.doubleValue();
+            fn = new fNode(tmp);
+        } else if (ito->second.stringValue().compare("long")) {
+            ito = opr.find("value");
+            long tmp = ito->second.longValue();
+            fn = new fNode(tmp);
+        } else if (ito->second.stringValue().compare("int")) {
+            ito = opr.find("value");
+            long tmp = ito->second.longValue();
+            fn = new fNode(tmp);
+        } else if (ito->second.stringValue().compare("string")) {
+            ito = opr.find("value");
+            string tmp = ito->second.stringValue();
+            fn = new fNode(tmp);
+        }
+        if (ope.compare("lt") == 0) {
+            fn->setFt(ftLt);
+        } else if (ope.compare("le") == 0) {
+            fn->setFt(ftLe);
+        } else if (ope.compare("gt") == 0) {
+            fn->setFt(ftGt);
+        } else if (ope.compare("ge") == 0) {
+            fn->setFt(ftGe);
+        }
+        return fn;
+    }
+}
+
+static void selectField(const Entity &e, FetchTable &st, const string &ns) {
+    const Object &m = e.objectValue();
+    const string &n = getStringField(e, m, "name");
+    Object::const_iterator it = m.find("type");
+    if (it != m.end()) {
+        makeFetch(it->second, st, ns);
+    }
+    it = m.find("clause");
+    if (it != m.end()) {
+        if (it->second.stringValue().compare("fetch") == 0) {
+            ColMeta tmp(ns, 1);
+            st[n] = tmp;
+        } else if (it->second.stringValue().compare("filter") == 0) {
+            it = m.find("body");
+            const Object &b = it->second.objectValue();
+            fNode *fn = getBody(b);
+            ColMeta cm(ns, 0, fn);
+            st[n] = cm;
+        }
+    }
+}
+
 static Field makeField(const Entity &e, SymbolTable &st, const string &ns) {
     const Object &m = e.objectValue();
     const string &n = getStringField(e, m, "name");
@@ -349,6 +563,14 @@ static Field makeField(const Entity &e, SymbolTable &st, const string &ns) {
     GenericDatum d = (it2 == m.end()) ? GenericDatum() :
                      makeGenericDatum(node, it2->second, st);
     return Field(n, node, d);
+}
+
+static void selectRecordNode(const Entity &e,
+                             const string &name, const Object &m, FetchTable &st) {
+    const Array &v = getArrayField(e, m, "fields");
+    for (Array::const_iterator it = v.begin(); it != v.end(); ++it) {
+        selectField(*it, st, name);
+    }
 }
 
 static NodePtr makeRecordNode(const Entity &e,
@@ -406,10 +628,41 @@ public:
 };
 
 
+static void selectArrayNode(const Entity &e, const Object &m, FetchTable &st, const string &ns) {
+    Object::const_iterator it = findField(e, m, "items");
+    makeFetch(it->second, st, ns);
+}
+
 static NodePtr makeArrayNode(const Entity &e, const Object &m, SymbolTable &st, const string &ns) {
     Object::const_iterator it = findField(e, m, "items");
     return NodePtr(new NodeArray(asSingleAttribute(makeNode(it->second, st, ns))));
 }
+
+
+static void makeFetch(const Entity &e, const Object &m,
+                      FetchTable &st, const string &ns) {
+    const string &type = getStringField(e, m, "type");
+    if (type == "record") {
+        const string &name = getStringField(e, m, "name");
+        ColMeta tmp = ColMeta("");
+        if (ns.size() != 0) {
+            ColMeta tmpc = ColMeta(ns);
+            tmp = tmpc;
+        }
+        st[name] = tmp;
+        selectRecordNode(e, name, m, st);
+    } else if (type == "array") {
+        selectArrayNode(e, m, st, ns);
+    } else {
+        cout << "makefetch wrong type" + type << endl;
+    }
+    /*else if (type == "map") {
+        return makeMapNode(e, m, st, ns);
+    }*/
+    //throw Exception(boost::format("Unknown type definition: %1%")
+    //% e.toString());
+}
+
 
 static NodePtr makeNode(const Entity &e, const Object &m,
                         SymbolTable &st, const string &ns) {
@@ -438,6 +691,21 @@ static NodePtr makeNode(const Entity &e, const Object &m,
     }*/
     //throw Exception(boost::format("Unknown type definition: %1%")
     //% e.toString());
+}
+
+
+static void makeFetch(const Entity &e, FetchTable &ft, const string &ns) {
+    switch (e.type()) {
+        case etString:;
+        case etObject:
+            makeFetch(e, e.objectValue(), ft, ns);
+            break;
+        case etArray:
+            makeFetch(e, e.arrayValue(), ft, ns);
+            break;
+            //default:
+            //throw Exception(boost::format("Invalid Avro type: %1%") % e.toString());
+    }
 }
 
 static NodePtr makeNode(const Entity &e, SymbolTable &st, const string &ns) {
@@ -854,11 +1122,13 @@ void NestedReader(string datafile, string schemafile) {
     int *bind = new int[26]();
     int *rcounts = new int[26]();
     int blocksize = headreader->getBlockSize();
+    vector<int> **offarrs = new vector<int> *[16];
     Block *blockreaders[26];
     for (int i1 = 0; i1 < 26; ++i1) {
         fpp[i1] = fopen(datafile.data(), "rb");
         fseek(fpp[i1], headreader->getColumns()[i1].getOffset(), SEEK_SET);
         rcounts[i1] = headreader->getColumns()[i1].getBlock(bind[i1]).getRowcount();
+        bind[i1]++;
         blockreaders[i1] = new Block(fpp[i1], 0L, 0, blocksize);
         blockreaders[i1]->loadFromFile();
     }
@@ -871,6 +1141,12 @@ void NestedReader(string datafile, string schemafile) {
         r2.push_back(i);
     }
     vector<GenericDatum> &records = r[0]->fieldAt(9).value<GenericArray>().value();
+
+    int offsize;
+    if (blocksize < 1 << 8) offsize = 1;
+    else if (blocksize < 1 << 16) offsize = 2;
+    else if (blocksize < 1 << 24) offsize = 3;
+    else if (blocksize < 1 << 32) offsize = 4;
     for (int k1 = 0; k1 < headreader->getRowCount(); ++k1) {
         for (int i :r1) {
             switch (r[0]->fieldAt(i).type()) {
@@ -907,7 +1183,12 @@ void NestedReader(string datafile, string schemafile) {
                         rcounts[i] = headreader->getColumn(i).getBlock(bind[i]).getRowcount();
                         bind[i]++;
                     }
-                    char *tmp = blockreaders[i]->next<char *>();
+                    if (rind[i] == 0) {
+                        offarrs[i] = blockreaders[i]->initString(offsize);
+                    }
+                    int tmpi = (*offarrs[i])[rind[i]];
+                    char *tmp = blockreaders[i]->getoffstring((*offarrs[i])[rind[i]]);
+//                    char *tmp = blockreaders[i]->next<char *>();
                     r[0]->fieldAt(i) = tmp;
                     //cout << tmp << " ";
                     rind[i]++;
@@ -948,6 +1229,7 @@ void NestedReader(string datafile, string schemafile) {
                     }
                     int arrsize = blockreaders[i]->next<int>();
                     rind[i]++;
+                    records = vector<GenericDatum>(arrsize, GenericDatum(&r[1]));
                     //cout << arrsize << endl;
                     //vector<GenericDatum> records;
                     for (int j = 0; j < arrsize; ++j) {
@@ -986,7 +1268,12 @@ void NestedReader(string datafile, string schemafile) {
                                         rcounts[k] = headreader->getColumn(k).getBlock(bind[k]).getRowcount();
                                         bind[k]++;
                                     }
-                                    char *tmp = blockreaders[k]->next<char *>();
+                                    if (rind[k] == 0) {
+                                        offarrs[k] = blockreaders[i]->initString(offsize);
+                                    }
+                                    int tmpi = (*offarrs[k])[rind[i]];
+                                    char *tmp = blockreaders[i]->getoffstring((*offarrs[i])[rind[i]]);
+//                                    char *tmp = blockreaders[k]->next<char *>();
                                     r[1]->fieldAt(k - 10) = tmp;
                                     //cout << tmp << " ";
                                     rind[k]++;
@@ -1174,6 +1461,7 @@ void LReader(string datafile, string schemafile, vector<int> rv) {
                     if (rind[i] == 0) {
                         offarrs[i] = blockreaders[i]->initString(offsize);
                     }
+                    int tmpi = (*offarrs[i])[rind[i]];
                     char *tmp = blockreaders[i]->getoffstring((*offarrs[i])[rind[i]]);
 //                    char *tmp = blockreaders[i]->next<char *>();
                     r[1]->fieldAt(i) = tmp;
@@ -1285,10 +1573,71 @@ void fileTest() {
     delete stringBlock;
 }
 
+void testSchema() {
+    fstream schema_f("../res/schema/custom/nest.avsc", schema_f.binary | schema_f.in);
+    if (!schema_f.is_open()) {
+        cout << "../res/schema/custom/nest.avsc" << "cannot open" << endl;
+    }
+    ostringstream buf;
+    char ch;
+    while (buf && schema_f.get(ch))
+        buf.put(ch);
+    string s_schema = buf.str();
+    char *schema = const_cast<char *>(s_schema.c_str());
+    JsonParser *test = new JsonParser();
+    test->init(schema);
+    Entity e_test = readEntity(*test);
+    SymbolTable st;
+    NodePtr n = makeNode(e_test, st, "");
+    ValidSchema *vschema = new ValidSchema(n);
+    GenericDatum c;
+    c = GenericDatum(vschema->root());
+    for (int i = 0; i < n->names(); ++i) {
+        cout << n->nameAt(i) << endl;
+    }
+    vector<GenericRecord> rs;
+    GenericRecord r(c.value<GenericRecord>());
+    rs.push_back(GenericRecord(r));
+    for (int j = 0; j < r.fieldCount(); ++j) {
+        if (r.fieldAt(j).type() == AVRO_ARRAY) {
+            c = GenericDatum(r.fieldAt(j).value<GenericArray>().schema()->leafAt(0));
+            r = c.value<GenericRecord>();
+            rs.push_back(GenericRecord(r));
+        }
+    }
+
+    fstream fetch_f("../res/schema/custom/query.qsc", fetch_f.binary | fetch_f.in);
+    if (!fetch_f.is_open()) {
+        cout << "../res/schema/custom/query.qsc" << "cannot open" << endl;
+    }
+    ostringstream buf_f;
+    while (buf_f && fetch_f.get(ch))
+        buf_f.put(ch);
+    string s_fetch = buf_f.str();
+    char *fetch = const_cast<char *>(s_fetch.c_str());
+    JsonParser *f_test = new JsonParser();
+    f_test->init(fetch);
+    Entity e_fetch = readEntity(*f_test);
+    FetchTable ft;
+    makeFetch(e_fetch, ft, "");
+    for (FetchTable::const_iterator it = ft.begin(); it != ft.end(); ++it) {
+        cout << it->first << " " << it->second.select << " ";
+        if (it->second.pname.size() != 0) {
+            cout << it->second.pname;
+        }
+        cout << endl;
+    }
+    FetchTable::const_iterator it = ft.find("c_acctbal");
+    if (it != ft.end())
+        if (it->second.fn->filter(0.04)) cout << "true" << endl;
+        else cout << "false" << endl;
+}
+
 int main(int argc, char **argv) {
+    testSchema();
     if (argc == 3) {
         OLWriter(argv[1], argv[2]);
-    } else {
+    } else if (argc == 2) {
 //    testFILEWRITER();
 //    testFileReader();
 //    OLWriter();

@@ -60,6 +60,17 @@ struct StreamReader {
             n -= q;
         }
     }
+
+    bool hasMore() {
+        if (_next == _end) {
+            return false;
+        } else if (_next != _end) {
+            return true;
+        } else {
+            cout << "has more wrong" << endl;
+            return true;
+        }
+    }
 };
 
 
@@ -222,7 +233,7 @@ private:
                 return tryLiteral("ull", 3, tkNull);
             default:
                 if (isdigit(ch) || ch == '-') {
-                    //return tryNumber(ch);
+                    return tryNumber(ch);
                 }
         }
     }
@@ -231,7 +242,123 @@ private:
         return tk;
     }
 
-    Token tryNumber(char ch);
+    Token tryNumber(char ch) {
+        sv.clear();
+        sv.push_back(ch);
+
+        hasNext = false;
+        int state = (ch == '-') ? 0 : (ch == '0') ? 1 : 2;
+        for (;;) {
+            switch (state) {
+                case 0:
+                    if (in_.hasMore()) {
+                        ch = in_.read();
+                        if (isdigit(ch)) {
+                            state = (ch == '0') ? 1 : 2;
+                            sv.push_back(ch);
+                            continue;
+                        }
+                        hasNext = true;
+                    }
+                    break;
+                case 1:
+                    if (in_.hasMore()) {
+                        ch = in_.read();
+                        if (ch == '.') {
+                            state = 3;
+                            sv.push_back(ch);
+                            continue;
+                        }
+                        hasNext = true;
+                    }
+                    break;
+                case 2:
+                    if (in_.hasMore()) {
+                        ch = in_.read();
+                        if (isdigit(ch)) {
+                            sv.push_back(ch);
+                            continue;
+                        } else if (ch == '.') {
+                            state = 3;
+                            sv.push_back(ch);
+                            continue;
+                        }
+                        hasNext = true;
+                    }
+                    break;
+                case 3:
+                case 6:
+                    if (in_.hasMore()) {
+                        ch = in_.read();
+                        if (isdigit(ch)) {
+                            sv.push_back(ch);
+                            state++;
+                            continue;
+                        }
+                        hasNext = true;
+                    }
+                    break;
+                case 4:
+                    if (in_.hasMore()) {
+                        ch = in_.read();
+                        if (isdigit(ch)) {
+                            sv.push_back(ch);
+                            continue;
+                        } else if (ch == 'e' || ch == 'E') {
+                            sv.push_back(ch);
+                            state = 5;
+                            continue;
+                        }
+                        hasNext = true;
+                    }
+                    break;
+                case 5:
+                    if (in_.hasMore()) {
+                        ch = in_.read();
+                        if (ch == '+' || ch == '-') {
+                            sv.push_back(ch);
+                            state = 6;
+                            continue;
+                        } else if (isdigit(ch)) {
+                            sv.push_back(ch);
+                            state = 7;
+                            continue;
+                        }
+                        hasNext = true;
+                    }
+                    break;
+                case 7:
+                    if (in_.hasMore()) {
+                        ch = in_.read();
+                        if (isdigit(ch)) {
+                            sv.push_back(ch);
+                            continue;
+                        }
+                        hasNext = true;
+                    }
+                    break;
+            }
+            if (state == 1 || state == 2 || state == 4 || state == 7) {
+                if (hasNext) {
+                    nextChar = ch;
+                }
+                std::istringstream iss(sv);
+                if (state == 1 || state == 2) {
+                    iss >> lv;
+                    return tkLong;
+                } else {
+                    iss >> dv;
+                    return tkDouble;
+                }
+            } else {
+                if (hasNext) {
+                    cout << "unexpected" << endl;
+                } else {
+                    cout << "Unexpected EOF" << endl;
+                }
+            }
+        }
+    }
 
     Token tryString() {
         sv.clear();

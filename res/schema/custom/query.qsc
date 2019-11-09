@@ -50,20 +50,6 @@
               "clause": "fetch"
             },
             {
-              "name": "o_orderdate",
-              "clause": "filter",
-              "body": {
-                "compisite": "negative",
-                "condition": {
-                  "operator": "contains",
-                  "operand": {
-                    "type": "string",
-                    "value": "1992"
-                  }
-                }
-              }
-            },
-            {
               "name": "LineitemList",
               "type": {
                 "type": "array",

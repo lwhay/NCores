@@ -195,6 +195,7 @@ private:
     bool locked_;
 };
 
+
 typedef std::map<Name, NodePtr> SymbolTable;
 
 

@@ -247,7 +247,8 @@ public:
     size_t fieldIndex(const std::string &name) const {
         size_t index = 0;
         if (!schema()->nameIndex(name, index)) {
-            //throw Exception("Invalid field name: " + name);
+            cout << ("Invalid field name: " + name) << endl;
+            return -1;
         }
         return index;
     }
@@ -273,6 +274,10 @@ public:
  * which can be used to change the contents.
  */
     GenericDatum &field(const std::string &name) {
+        if (fieldIndex(name) == -1) {
+            cout << "this name doesn't exisit";
+//            return NULL;
+        }
         return fieldAt(fieldIndex(name));
     }
 
