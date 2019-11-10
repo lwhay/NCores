@@ -135,6 +135,7 @@ struct ColMeta {
         pname = other.pname;
         select = other.select;
         this->fn = other.fn;
+        return *this;
     }
 
 };
