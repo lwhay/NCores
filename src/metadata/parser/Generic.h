@@ -142,6 +142,11 @@ public:
         init(schema);
         value<T>() = v;
     }
+//
+//    GenericDatum &operator=(GenericDatum& other){
+//        type_=other.type_;
+//        return *this;
+//    }
 
     /**
      * Constructs a datum corresponding to the given avro type.

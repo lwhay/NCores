@@ -17,9 +17,11 @@
 #include "BlockCache.h"
 #include "utils.h"
 #include "BatchFileWriter.h"
+#include "Parser.h"
 
 //#define DEBUG 1
 
+<<<<<<< Updated upstream
 class Node;
 
 class GenericFixed;
@@ -722,6 +724,8 @@ static NodePtr makeNode(const Entity &e, SymbolTable &st, const string &ns) {
     }
 }
 
+=======
+>>>>>>> Stashed changes
 void filesMerge(string file1, string file2, string path) {
     ifstream file_1;
     file_1.open(file1 + "/fileout.dat", ios_base::in | ios_base::binary);
@@ -1574,27 +1578,247 @@ void fileTest() {
     delete stringBlock;
 }
 
-void testSchema() {
-    fstream schema_f("../res/schema/custom/nest.avsc", schema_f.binary | schema_f.in);
-    if (!schema_f.is_open()) {
-        cout << "../res/schema/custom/nest.avsc" << "cannot open" << endl;
+struct colParser{
+    int layer;
+    int subcol;
+    fNode* fn;
+    colParser(){}
+    colParser(int l,int sc,fNode* f):layer(l),subcol(sc),fn(f){}
+};
+
+void filterRead(ValidSchema* vs,vector<vector<colParser>> vcp,string datafile){
+    GenericDatum c=GenericDatum(vs->root());
+    ifstream file_in;
+    file_in.open(datafile, ios_base::in | ios_base::binary);
+    unique_ptr<HeadReader> headreader(new HeadReader());
+    headreader->readHeader(file_in);
+    file_in.close();
+    FILE **fpp = new FILE *[26];
+    int *rind = new int[26]();
+    int *bind = new int[26]();
+    int *rcounts = new int[26]();
+    int blocksize = headreader->getBlockSize();
+    vector<int> **offarrs = new vector<int> *[26];
+    Block *blockreaders[26];
+    FILE **fpp1 = fpp+10;
+    int *rind1 = rind+10;
+    int *bind1 = bind+10;
+    int *rcounts1 = rcounts+10;
+    vector<int> **offarrs1 = offarrs+10;
+    Block **blockreaders1=blockreaders+10;
+
+    for (int i1 = 0; i1 < 26; ++i1) {
+        fpp[i1] = fopen(datafile.data(), "rb");
+        fseek(fpp[i1], headreader->getColumns()[i1].getOffset(), SEEK_SET);
+        rcounts[i1] = headreader->getColumns()[i1].getBlock(bind[i1]).getRowcount();
+        bind[i1]++;
+        blockreaders[i1] = new Block(fpp[i1], 0L, 0, blocksize);
+        blockreaders[i1]->loadFromFile();
     }
-    ostringstream buf;
-    char ch;
-    while (buf && schema_f.get(ch))
-        buf.put(ch);
-    string s_schema = buf.str();
-    char *schema = const_cast<char *>(s_schema.c_str());
-    JsonParser *test = new JsonParser();
-    test->init(schema);
-    Entity e_test = readEntity(*test);
-    SymbolTable st;
-    NodePtr n = makeNode(e_test, st, "");
-    ValidSchema *vschema = new ValidSchema(n);
-    GenericDatum c;
-    c = GenericDatum(vschema->root());
-    for (int i = 0; i < n->names(); ++i) {
-        cout << n->nameAt(i) << endl;
+
+    vector<GenericRecord> rs;
+    GenericRecord r(c.value<GenericRecord>());
+    rs.push_back(GenericRecord(r));
+    for (int j = 0; j < r.fieldCount(); ++j) {
+        if (r.fieldAt(j).type() == AVRO_ARRAY) {
+            c = GenericDatum(r.fieldAt(j).value<GenericArray>().schema()->leafAt(0));
+            r = c.value<GenericRecord>();
+            rs.push_back(GenericRecord(r));
+        }
+    }
+    vector<GenericDatum> &records = rs[0].fieldAt(9).value<GenericArray>().value();
+    for (int l = 1; l <vcp.size() ; ++l) {
+        if(vcp[l].size()!=0){
+            vcp[l-1].push_back(colParser(l-1,rs[l].fieldCount()-1,NULL));
+        }
+    }
+
+    int offsize;
+    if (blocksize < 1 << 8) offsize = 1;
+    else if (blocksize < 1 << 16) offsize = 2;
+    else if (blocksize < 1 << 24) offsize = 3;
+    else if (blocksize < 1 << 32) offsize = 4;
+    for (int k1 = 0; k1 < headreader->getRowCount(); ++k1) {
+        for (colParser i :vcp[0]) {
+            switch (rs[0].fieldAt(i.subcol).type()) {
+                case AVRO_LONG: {
+                    if (rind[i.subcol] == rcounts[i.subcol]) {
+                        blockreaders[i.subcol]->loadFromFile();
+                        rind[i.subcol] = 0;
+                        rcounts[i.subcol] = headreader->getColumn(i.subcol).getBlock(bind[i.subcol]).getRowcount();
+                        bind[i.subcol]++;
+                    }
+                    int64_t tmp = blockreaders[i.subcol]->next<long>();
+                    if(i.fn!=NULL){
+                        if(!i.fn->filter(tmp));
+                    }
+                    rs[0].fieldAt(i.subcol) = tmp;
+                    //cout << tmp << " ";
+                    rind[i.subcol]++;
+                    break;
+                }
+                case AVRO_INT: {
+                    if (rind[i.subcol] == rcounts[i.subcol]) {
+                        blockreaders[i.subcol]->loadFromFile();
+                        rind[i.subcol] = 0;
+                        rcounts[i.subcol] = headreader->getColumn(i.subcol).getBlock(bind[i.subcol]).getRowcount();
+                        bind[i.subcol]++;
+                    }
+                    int tmp = blockreaders[i.subcol]->next<int>();
+                    rs[0].fieldAt(i.subcol) = tmp;
+                    //cout << tmp << " ";
+                    rind[i.subcol]++;
+                    break;
+                }
+                case AVRO_STRING: {
+                    if (rind[i.subcol] == rcounts[i.subcol]) {
+                        blockreaders[i.subcol]->loadFromFile();
+                        rind[i.subcol] = 0;
+                        rcounts[i.subcol] = headreader->getColumn(i.subcol).getBlock(bind[i.subcol]).getRowcount();
+                        bind[i.subcol]++;
+                    }
+                    if (rind[i.subcol] == 0) {
+                        offarrs[i.subcol] = blockreaders[i.subcol]->initString(offsize);
+                    }
+                    int tmpi = (*offarrs[i.subcol])[rind[i.subcol]];
+                    char *tmp = blockreaders[i.subcol]->getoffstring((*offarrs[i.subcol])[rind[i.subcol]]);
+//                    char *tmp = blockreaders[i.subcol]->next<char *>();
+                    rs[0].fieldAt(i.subcol) = tmp;
+                    //cout << tmp << " ";
+                    rind[i.subcol]++;
+                    break;
+                }
+                case AVRO_FLOAT: {
+                    if (rind[i.subcol] == rcounts[i.subcol]) {
+                        blockreaders[i.subcol]->loadFromFile();
+                        rind[i.subcol] = 0;
+                        rcounts[i.subcol] = headreader->getColumn(i.subcol).getBlock(bind[i.subcol]).getRowcount();
+                        bind[i.subcol]++;
+                    }
+                    float tmp = blockreaders[i.subcol]->next<float>();
+                    rs[0].fieldAt(i.subcol) = tmp;
+                    //cout << tmp << " ";
+                    rind[i.subcol]++;
+                    break;
+                }
+                case AVRO_BYTES: {
+                    if (rind[i.subcol] == rcounts[i.subcol]) {
+                        blockreaders[i.subcol]->loadFromFile();
+                        rind[i.subcol] = 0;
+                        rcounts[i.subcol] = headreader->getColumn(i.subcol).getBlock(bind[i.subcol]).getRowcount();
+                        bind[i.subcol]++;
+                    }
+                    char tmp = blockreaders[i.subcol]->next<char>();
+                    rs[0].fieldAt(i.subcol) = tmp;
+                    //cout << tmp << " ";
+                    rind[i.subcol]++;
+                    break;
+                }
+                case AVRO_ARRAY: {
+                    if (rind[i.subcol] == rcounts[i.subcol]) {
+                        blockreaders[i.subcol]->loadFromFile();
+                        rind[i.subcol] = 0;
+                        rcounts[i.subcol] = headreader->getColumn(i.subcol).getBlock(bind[i.subcol]).getRowcount();
+                        bind[i.subcol]++;
+                    }
+                    int arrsize = blockreaders[i.subcol]->next<int>();
+                    rind[i.subcol]++;
+                    records = vector<GenericDatum>(arrsize, GenericDatum(&rs[1]));
+                    //cout << arrsize << endl;
+                    //vector<GenericDatum> records;
+                    for (int j = 0; j < arrsize; ++j) {
+                        for (colParser k :vcp[1]) {
+                            switch (rs[1].fieldAt(k.subcol).type()) {
+                                case AVRO_LONG: {
+                                    if (rind1[k.subcol] == rcounts1[k.subcol]) {
+                                        blockreaders1[k.subcol]->loadFromFile();
+                                        rind1[k.subcol] = 0;
+                                        rcounts1[k.subcol] = headreader->getColumn(k.subcol).getBlock(bind1[k.subcol]).getRowcount();
+                                        bind1[k.subcol]++;
+                                    }
+                                    int64_t tmp = blockreaders1[k.subcol]->next<long>();
+                                    rs[1].fieldAt(k.subcol) = tmp;
+                                    //cout << tmp << " ";
+                                    rind1[k.subcol]++;
+                                    break;
+                                }
+                                case AVRO_INT: {
+                                    if (rind1[k.subcol] == rcounts1[k.subcol]) {
+                                        blockreaders1[k.subcol]->loadFromFile();
+                                        rind1[k.subcol] = 0;
+                                        rcounts1[k.subcol] = headreader->getColumn(k.subcol).getBlock(bind1[k.subcol]).getRowcount();
+                                        bind1[k.subcol]++;
+                                    }
+                                    int tmp = blockreaders1[k.subcol]->next<int>();
+                                    rs[1].fieldAt(k.subcol) = tmp;
+                                    //cout << tmp << " ";
+                                    rind1[k.subcol]++;
+                                    break;
+                                }
+                                case AVRO_STRING: {
+                                    if (rind1[k.subcol] == rcounts1[k.subcol]) {
+                                        blockreaders1[k.subcol]->loadFromFile();
+                                        rind1[k.subcol] = 0;
+                                        rcounts1[k.subcol] = headreader->getColumn(k.subcol).getBlock(bind1[k.subcol]).getRowcount();
+                                        bind1[k.subcol]++;
+                                    }
+                                    if (rind1[k.subcol] == 0) {
+                                        offarrs1[k.subcol] = blockreaders1[k.subcol]->initString(offsize);
+                                    }
+                                    int tmpi = (*offarrs1[k.subcol])[rind1[k.subcol]];
+                                    char *tmp = blockreaders[k.subcol]->getoffstring((*offarrs1[k.subcol])[rind1[k.subcol]]);
+//                                    char *tmp = blockreaders[k.subcol]->next<char *>();
+                                    rs[1].fieldAt(k.subcol) = tmp;
+                                    //cout << tmp << " ";
+                                    rind[k.subcol]++;
+                                    break;
+                                }
+                                case AVRO_FLOAT: {
+                                    if (rind1[k.subcol] == rcounts1[k.subcol]) {
+                                        blockreaders1[k.subcol]->loadFromFile();
+                                        rind1[k.subcol] = 0;
+                                        rcounts1[k.subcol] = headreader->getColumn(k.subcol).getBlock(bind1[k.subcol]).getRowcount();
+                                        bind1[k.subcol]++;
+                                    }
+                                    float tmp = blockreaders1[k.subcol]->next<float>();
+                                    rs[1].fieldAt(k.subcol) = tmp;
+                                    //cout << tmp << " ";
+                                    rind1[k.subcol]++;
+                                    break;
+                                }
+                                case AVRO_BYTES: {
+                                    if (rind1[k.subcol] == rcounts1[k.subcol]) {
+                                        blockreaders1[k.subcol]->loadFromFile();
+                                        rind1[k.subcol] = 0;
+                                        rcounts1[k.subcol] = headreader->getColumn(k.subcol).getBlock(bind1[k.subcol]).getRowcount();
+                                        bind1[k.subcol]++;
+                                    }
+                                    char tmp = blockreaders1[k.subcol]->next<char>();
+                                    rs[1].fieldAt(k.subcol) = tmp;
+                                    //       cout << tmp << " ";
+                                    rind1[k.subcol]++;
+                                    break;
+                                }
+                            }
+                        }
+                        records.push_back(GenericDatum(rs[1]));
+                    }
+                    records.clear();
+                }
+            }
+        }
+    }
+    for (int i1 = 0; i1 < 26; ++i1) {
+        fclose(fpp[i1]);
+    }
+}
+
+void testSchema() {
+    SchemaReader sr("../res/schema/custom/nest.avsc");
+    GenericDatum c(sr.read()->root());
+    for (int i = 0; i < sr.read()->root()->names(); ++i) {
+        cout<<sr.read()->root()->name().fullname()<<endl;
+        cout << sr.read()->root()->nameAt(i) << endl;
     }
     vector<GenericRecord> rs;
     GenericRecord r(c.value<GenericRecord>());
@@ -1612,6 +1836,7 @@ void testSchema() {
         cout << "../res/schema/custom/query.qsc" << "cannot open" << endl;
     }
     ostringstream buf_f;
+    char ch;
     while (buf_f && fetch_f.get(ch))
         buf_f.put(ch);
     string s_fetch = buf_f.str();
@@ -1628,6 +1853,18 @@ void testSchema() {
         }
         cout << endl;
     }
+    vector<vector<colParser>> cps(rs.size(),vector<colParser> ());
+    for (FetchTable::const_iterator it = ft.begin(); it != ft.end(); ++it) {
+        for (int i = 0; i <rs.size() ; ++i) {
+            if(rs[i].schema()->name().fullname().compare(it->second.pname)==0){
+                size_t ind;
+                if(rs[i].schema()->nameIndex(it->first,ind)){
+                    cps[i].push_back(colParser(i,ind,it->second.fn));
+                };
+            }
+        }
+    }
+
     FetchTable::const_iterator it = ft.find("c_acctbal");
     if (it != ft.end())
         if (it->second.fn->filter(0.04)) cout << "true" << endl;
@@ -1638,6 +1875,7 @@ int main(int argc, char **argv) {
     testSchema();
     if (argc == 3) {
         OLWriter(argv[1], argv[2]);
+        cout<<"olwriter"<<endl;
     } else if (argc == 2) {
 //    testFILEWRITER();
 //    testFileReader();
