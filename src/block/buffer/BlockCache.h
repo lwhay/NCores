@@ -5,6 +5,7 @@
 #include <limits>
 #include <cstring>
 #include <vector>
+#include <c++/8.2.0/cmath>
 #include "FileOperations.h"
 #include "CoresIterator.h"
 #include "CoresAppender.h"
@@ -14,35 +15,35 @@
 using namespace std;
 
 namespace codec {
-template<class T>
-void encode(T *_cache, int _idx, T _value) {
-    _cache[_idx] = _value;
-}
-
-template<class T>
-T decode(T *_cache, int _idx) {
-    return _cache[_idx];
-}
-
-template<>
-void encode(char **_cache, int _idx, char *_value) {
-    short *length;
-    length = (short *) ((char *) _cache + _idx);
-    *length = strlen(_value);
-    char *tmp = (char *) length + 2;
-    std::strcpy(tmp, _value);
-}
-
-template<>
-char *decode(char **_cache, int _idx) {
-    int index = 0;
-    string str;
-    for (int i = 0; i < _idx; ++i) {
-        str = (char *) _cache + index;
-        index += str.length() + 1;
+    template<class T>
+    void encode(T *_cache, int _idx, T _value) {
+        _cache[_idx] = _value;
     }
-    return (char *) _cache + index;
-}
+
+    template<class T>
+    T decode(T *_cache, int _idx) {
+        return _cache[_idx];
+    }
+
+    template<>
+    void encode(char **_cache, int _idx, char *_value) {
+        short *length;
+        length = (short *) ((char *) _cache + _idx);
+        *length = strlen(_value);
+        char *tmp = (char *) length + 2;
+        std::strcpy(tmp, _value);
+    }
+
+    template<>
+    char *decode(char **_cache, int _idx) {
+        int index = 0;
+        string str;
+        for (int i = 0; i < _idx; ++i) {
+            str = (char *) _cache + index;
+            index += str.length() + 1;
+        }
+        return (char *) _cache + index;
+    }
 
 }
 
@@ -287,7 +288,7 @@ public:
 
     template<typename type>
     type get(int idx) {
-        type tmp = function_<type>::_get(_cache, idx);
+        type tmp = function_<type>::_get((char *) _cache + _cursor, idx);
         return tmp;
     };
 
@@ -315,6 +316,23 @@ public:
         _cursor = 0;
         _count = 0;
         fread(_cache, sizeof(char), _limit, _fp);
+    }
+
+    void loadFromFile(int rowcount) {
+        _cursor = ceil(rowcount / 8);
+        _count = 0;
+        fread(_cache, sizeof(char), _limit, _fp);
+    }
+
+    void skipload(int offset) {
+        _cursor = 0;
+        _count = 0;
+        fseek(_fp, offset, SEEK_SET);
+        fread(_cache, sizeof(char), _limit, _fp);
+    }
+
+    bool isvalid(int off) {
+        return (((char *) _cache)[off / 8]) & (1l << off % 8) != 0;
     }
 
     void appendToFile() {
@@ -370,16 +388,16 @@ public:
 
     template<typename type>
     type next() {
-        int &tmp = _cursor;
+        int &tmp = _count;
         type tmpc = function_<type>::_next(tmp, _cache);
         return tmpc;
     }
 
     vector<int> *initString(int offsize) {
         char *tmpbuf = new char[4]();
-        char *tmp = (char *) _cache;
+        char *tmp = (char *) _cache + _cursor;
         vector<int> *offarr = new vector<int>();
-        memcpy(tmpbuf, _cache, offsize);
+        memcpy(tmpbuf, (char *) _cache + _cursor, offsize);
         int *tmpi = (int *) tmpbuf;
         offarr->push_back(*tmpi);
         int num = *tmpi / offsize;

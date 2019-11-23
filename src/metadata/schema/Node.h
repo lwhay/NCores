@@ -161,6 +161,12 @@ public:
 
     virtual bool isValid() const = 0;
 
+    virtual void setValid(int i) = 0;
+
+    virtual bool getValid(int i) const = 0;
+
+    virtual void invalidate() = 0;
+
 //virtual SchemaResolution resolve(const Node &reader) const = 0;
 
 //    virtual void printJson(std::ostream &os, int depth) const = 0;
@@ -460,6 +466,12 @@ protected:
 
     virtual bool isValid() const = 0;
 
+    virtual void setValid(int i) = 0;
+
+    virtual bool getValid(int i) const = 0;
+
+    virtual void invalidate() = 0;
+
     void printBasicInfo(std::ostream &os) const;
 
     void setLeafToSymbolic(int index, const NodePtr &node);
@@ -546,6 +558,13 @@ public:
     bool isValid() const {
         return true;
     }
+
+    void invalidate() {}
+
+    void setValid(int i) {}
+
+
+    bool getValid(int i) const { return true; }
 };
 
 class NodeSymbolic : public NodeImplSymbolic {
@@ -569,6 +588,8 @@ public:
         return (nameAttribute_.size() == 1);
     }
 
+    void invalidate() {}
+
     bool isSet() const {
         return (actualNode_.lock() != 0);
     }
@@ -585,6 +606,10 @@ public:
         actualNode_ = node;
     }
 
+    void setValid(int i) {}
+
+    bool getValid(int i) const { return true; }
+
 protected:
 
     NodeWeakPtr actualNode_;
@@ -593,14 +618,20 @@ protected:
 
 class NodeRecord : public NodeImplRecord {
     std::vector<GenericDatum> defaultValues;
+    std::vector<bool> requiredBool;
+    std::vector<bool> validBool;
 public:
     NodeRecord() : NodeImplRecord(AVRO_RECORD) {}
 
     NodeRecord(const HasName &name, const MultiLeaves &fields,
                const LeafNames &fieldsNames,
-               const std::vector<GenericDatum> &dv) :
+               const std::vector<GenericDatum> &dv,
+               const std::vector<bool> &rb) :
             NodeImplRecord(AVRO_RECORD, name, fields, fieldsNames, NoSize()),
-            defaultValues(dv) {
+            defaultValues(dv),
+            requiredBool(rb),
+            validBool(vector<bool>(leafNameAttributes_.size(), false)) {
+        int k = validBool.size();
         for (size_t i = 0; i < leafNameAttributes_.size(); ++i) {
             if (!nameIndex_.add(leafNameAttributes_.get(i), i)) {
 //            throw Exception(boost::format(
@@ -613,6 +644,22 @@ public:
     void swap(NodeRecord &r) {
         NodeImplRecord::swap(r);
         defaultValues.swap(r.defaultValues);
+        validBool.swap(r.validBool);
+        requiredBool.swap(r.requiredBool);
+    }
+
+    void setValid(int i) {
+        if (i >= leafNameAttributes_.size())
+            cout << "out of the limit" << endl;
+        validBool[i] = true;
+    }
+
+    void invalidate() {
+        validBool = vector<bool>(validBool.size(), false);
+    }
+
+    bool getValid(int i) const {
+        return validBool[i];
     }
 
 //SchemaResolution resolve(const Node &reader)  const;
@@ -649,6 +696,12 @@ public:
                 (sizeAttribute_.size() == 1)
         );
     }
+
+    void setValid(int i) {}
+
+    void invalidate() {}
+
+    bool getValid(int i) const { return true; }
 };
 
 template<class A, class B, class C, class D>

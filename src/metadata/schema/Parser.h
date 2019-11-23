@@ -240,9 +240,10 @@ struct Field {
     const string &name;
     const NodePtr schema;
     const GenericDatum defaultValue;
+    const bool required;
 
-    Field(const string &n, const NodePtr &v, GenericDatum dv = GenericDatum()) :
-            name(n), schema(v), defaultValue(dv) {}
+    Field(const string &n, const NodePtr &v, GenericDatum dv = GenericDatum(), bool r = true) :
+            name(n), schema(v), defaultValue(dv), required(r) {}
 };
 
 class NodeUnion : public NodeImplUnion {
@@ -314,6 +315,12 @@ public:
         }
         return false;
     }
+
+    void setValid(int i) {}
+
+    void invalidate() {}
+
+    bool getValid(int i) const { return true; }
 };
 
 
@@ -550,7 +557,11 @@ static Field makeField(const Entity &e, SymbolTable &st, const string &ns) {
     NodePtr node = makeNode(it->second, st, ns);
     GenericDatum d = (it2 == m.end()) ? GenericDatum() :
                      makeGenericDatum(node, it2->second, st);
-    return Field(n, node, d);
+    it = m.find("option");
+    bool r = true;
+    if (it != m.end() && it->second.stringValue().compare("optional") == 0)
+        r = false;
+    return Field(n, node, d, r);
 }
 
 static void selectRecordNode(const Entity &e,
@@ -567,15 +578,17 @@ static NodePtr makeRecordNode(const Entity &e,
     MultiAttribute<string> fieldNames;
     MultiAttribute<NodePtr> fieldValues;
     vector<GenericDatum> defaultValues;
+    vector<bool> requiredValues;
 
     for (Array::const_iterator it = v.begin(); it != v.end(); ++it) {
         Field f = makeField(*it, st, ns);
         fieldNames.add(f.name);
         fieldValues.add(f.schema);
         defaultValues.push_back(f.defaultValue);
+        requiredValues.push_back(f.required);
     }
     return NodePtr(new NodeRecord(asSingleAttribute(name),
-                                  fieldValues, fieldNames, defaultValues));
+                                  fieldValues, fieldNames, defaultValues, requiredValues));
 }
 
 const int64_t getLongField(const Entity &e, const Object &m,
@@ -613,6 +626,12 @@ public:
     bool isValid() const {
         return (leafAttributes_.size() == 1);
     }
+
+    void setValid(int i) {}
+
+    void invalidate() {}
+
+    bool getValid(int i) const { return true; }
 };
 
 
@@ -710,17 +729,17 @@ static NodePtr makeNode(const Entity &e, SymbolTable &st, const string &ns) {
 }
 
 
-class SchemaReader{
+class SchemaReader {
 private:
     string schemafile;
     bool filter;
 
 public:
-    SchemaReader(string sf,bool fl=true):schemafile(sf),filter(fl){
+    SchemaReader(string sf, bool fl = true) : schemafile(sf), filter(fl) {
     }
 
-    ValidSchema *read(){
-        if(filter){
+    ValidSchema *read() {
+        if (filter) {
             fstream schema_f(schemafile, schema_f.binary | schema_f.in);
             if (!schema_f.is_open()) {
                 cout << schemafile << "cannot open" << endl;
@@ -737,7 +756,8 @@ public:
             SymbolTable st;
             NodePtr n = makeNode(e_test, st, "");
             ValidSchema *vschema = new ValidSchema(n);
-            return vschema;} else{
+            return vschema;
+        } else {
             fstream fetch_f("../res/schema/custom/query.qsc", fetch_f.binary | fetch_f.in);
             if (!fetch_f.is_open()) {
                 cout << "../res/schema/custom/query.qsc" << "cannot open" << endl;
@@ -757,5 +777,6 @@ public:
         }
     }
 };
+
 
 #endif //CORES_PARSER_H

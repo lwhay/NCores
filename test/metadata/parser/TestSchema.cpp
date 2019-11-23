@@ -886,16 +886,18 @@ void fileTest() {
     delete stringBlock;
 }
 
-struct colParser{
+struct colParser {
     int layer;
     int subcol;
-    fNode* fn;
-    colParser(){}
-    colParser(int l,int sc,fNode* f):layer(l),subcol(sc),fn(f){}
+    fNode *fn;
+
+    colParser() {}
+
+    colParser(int l, int sc, fNode *f) : layer(l), subcol(sc), fn(f) {}
 };
 
-void filterRead(ValidSchema* vs,vector<vector<colParser>> vcp,string datafile){
-    GenericDatum c=GenericDatum(vs->root());
+void filterRead(ValidSchema *vs, vector<vector<colParser>> vcp, string datafile) {
+    GenericDatum c = GenericDatum(vs->root());
     ifstream file_in;
     file_in.open(datafile, ios_base::in | ios_base::binary);
     unique_ptr<HeadReader> headreader(new HeadReader());
@@ -908,12 +910,12 @@ void filterRead(ValidSchema* vs,vector<vector<colParser>> vcp,string datafile){
     int blocksize = headreader->getBlockSize();
     vector<int> **offarrs = new vector<int> *[26];
     Block *blockreaders[26];
-    FILE **fpp1 = fpp+10;
-    int *rind1 = rind+10;
-    int *bind1 = bind+10;
-    int *rcounts1 = rcounts+10;
-    vector<int> **offarrs1 = offarrs+10;
-    Block **blockreaders1=blockreaders+10;
+    FILE **fpp1 = fpp + 10;
+    int *rind1 = rind + 10;
+    int *bind1 = bind + 10;
+    int *rcounts1 = rcounts + 10;
+    vector<int> **offarrs1 = offarrs + 10;
+    Block **blockreaders1 = blockreaders + 10;
 
     for (int i1 = 0; i1 < 26; ++i1) {
         fpp[i1] = fopen(datafile.data(), "rb");
@@ -935,9 +937,9 @@ void filterRead(ValidSchema* vs,vector<vector<colParser>> vcp,string datafile){
         }
     }
     vector<GenericDatum> &records = rs[0].fieldAt(9).value<GenericArray>().value();
-    for (int l = 1; l <vcp.size() ; ++l) {
-        if(vcp[l].size()!=0){
-            vcp[l-1].push_back(colParser(l-1,rs[l].fieldCount()-1,NULL));
+    for (int l = 1; l < vcp.size(); ++l) {
+        if (vcp[l].size() != 0) {
+            vcp[l - 1].push_back(colParser(l - 1, rs[l].fieldCount() - 1, NULL));
         }
     }
 
@@ -957,8 +959,8 @@ void filterRead(ValidSchema* vs,vector<vector<colParser>> vcp,string datafile){
                         bind[i.subcol]++;
                     }
                     int64_t tmp = blockreaders[i.subcol]->next<long>();
-                    if(i.fn!=NULL){
-                        if(!i.fn->filter(tmp));
+                    if (i.fn != NULL) {
+                        if (!i.fn->filter(tmp));
                     }
                     rs[0].fieldAt(i.subcol) = tmp;
                     //cout << tmp << " ";
@@ -1041,7 +1043,8 @@ void filterRead(ValidSchema* vs,vector<vector<colParser>> vcp,string datafile){
                                     if (rind1[k.subcol] == rcounts1[k.subcol]) {
                                         blockreaders1[k.subcol]->loadFromFile();
                                         rind1[k.subcol] = 0;
-                                        rcounts1[k.subcol] = headreader->getColumn(k.subcol).getBlock(bind1[k.subcol]).getRowcount();
+                                        rcounts1[k.subcol] = headreader->getColumn(k.subcol).getBlock(
+                                                bind1[k.subcol]).getRowcount();
                                         bind1[k.subcol]++;
                                     }
                                     int64_t tmp = blockreaders1[k.subcol]->next<long>();
@@ -1054,7 +1057,8 @@ void filterRead(ValidSchema* vs,vector<vector<colParser>> vcp,string datafile){
                                     if (rind1[k.subcol] == rcounts1[k.subcol]) {
                                         blockreaders1[k.subcol]->loadFromFile();
                                         rind1[k.subcol] = 0;
-                                        rcounts1[k.subcol] = headreader->getColumn(k.subcol).getBlock(bind1[k.subcol]).getRowcount();
+                                        rcounts1[k.subcol] = headreader->getColumn(k.subcol).getBlock(
+                                                bind1[k.subcol]).getRowcount();
                                         bind1[k.subcol]++;
                                     }
                                     int tmp = blockreaders1[k.subcol]->next<int>();
@@ -1067,14 +1071,16 @@ void filterRead(ValidSchema* vs,vector<vector<colParser>> vcp,string datafile){
                                     if (rind1[k.subcol] == rcounts1[k.subcol]) {
                                         blockreaders1[k.subcol]->loadFromFile();
                                         rind1[k.subcol] = 0;
-                                        rcounts1[k.subcol] = headreader->getColumn(k.subcol).getBlock(bind1[k.subcol]).getRowcount();
+                                        rcounts1[k.subcol] = headreader->getColumn(k.subcol).getBlock(
+                                                bind1[k.subcol]).getRowcount();
                                         bind1[k.subcol]++;
                                     }
                                     if (rind1[k.subcol] == 0) {
                                         offarrs1[k.subcol] = blockreaders1[k.subcol]->initString(offsize);
                                     }
                                     int tmpi = (*offarrs1[k.subcol])[rind1[k.subcol]];
-                                    char *tmp = blockreaders[k.subcol]->getoffstring((*offarrs1[k.subcol])[rind1[k.subcol]]);
+                                    char *tmp = blockreaders[k.subcol]->getoffstring(
+                                            (*offarrs1[k.subcol])[rind1[k.subcol]]);
 //                                    char *tmp = blockreaders[k.subcol]->next<char *>();
                                     rs[1].fieldAt(k.subcol) = tmp;
                                     //cout << tmp << " ";
@@ -1085,7 +1091,8 @@ void filterRead(ValidSchema* vs,vector<vector<colParser>> vcp,string datafile){
                                     if (rind1[k.subcol] == rcounts1[k.subcol]) {
                                         blockreaders1[k.subcol]->loadFromFile();
                                         rind1[k.subcol] = 0;
-                                        rcounts1[k.subcol] = headreader->getColumn(k.subcol).getBlock(bind1[k.subcol]).getRowcount();
+                                        rcounts1[k.subcol] = headreader->getColumn(k.subcol).getBlock(
+                                                bind1[k.subcol]).getRowcount();
                                         bind1[k.subcol]++;
                                     }
                                     float tmp = blockreaders1[k.subcol]->next<float>();
@@ -1098,7 +1105,8 @@ void filterRead(ValidSchema* vs,vector<vector<colParser>> vcp,string datafile){
                                     if (rind1[k.subcol] == rcounts1[k.subcol]) {
                                         blockreaders1[k.subcol]->loadFromFile();
                                         rind1[k.subcol] = 0;
-                                        rcounts1[k.subcol] = headreader->getColumn(k.subcol).getBlock(bind1[k.subcol]).getRowcount();
+                                        rcounts1[k.subcol] = headreader->getColumn(k.subcol).getBlock(
+                                                bind1[k.subcol]).getRowcount();
                                         bind1[k.subcol]++;
                                     }
                                     char tmp = blockreaders1[k.subcol]->next<char>();
@@ -1125,7 +1133,7 @@ void testSchema() {
     SchemaReader sr("../res/schema/custom/nest.avsc");
     GenericDatum c(sr.read()->root());
     for (int i = 0; i < sr.read()->root()->names(); ++i) {
-        cout<<sr.read()->root()->name().fullname()<<endl;
+        cout << sr.read()->root()->name().fullname() << endl;
         cout << sr.read()->root()->nameAt(i) << endl;
     }
     vector<GenericRecord> rs;
@@ -1161,13 +1169,13 @@ void testSchema() {
         }
         cout << endl;
     }
-    vector<vector<colParser>> cps(rs.size(),vector<colParser> ());
+    vector<vector<colParser>> cps(rs.size(), vector<colParser>());
     for (FetchTable::const_iterator it = ft.begin(); it != ft.end(); ++it) {
-        for (int i = 0; i <rs.size() ; ++i) {
-            if(rs[i].schema()->name().fullname().compare(it->second.pname)==0){
+        for (int i = 0; i < rs.size(); ++i) {
+            if (rs[i].schema()->name().fullname().compare(it->second.pname) == 0) {
                 size_t ind;
-                if(rs[i].schema()->nameIndex(it->first,ind)){
-                    cps[i].push_back(colParser(i,ind,it->second.fn));
+                if (rs[i].schema()->nameIndex(it->first, ind)) {
+                    cps[i].push_back(colParser(i, ind, it->second.fn));
                 };
             }
         }
@@ -1183,7 +1191,7 @@ int main(int argc, char **argv) {
     testSchema();
     if (argc == 3) {
         OLWriter(argv[1], argv[2]);
-        cout<<"olwriter"<<endl;
+        cout << "olwriter" << endl;
     } else if (argc == 2) {
 //    testFILEWRITER();
 //    testFileReader();

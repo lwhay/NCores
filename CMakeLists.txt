@@ -282,6 +282,7 @@ if (WITH_TESTS)
     set(TESTS
             test/metadata/parser/TestTypes.cpp
             test/metadata/parser/TestSchema.cpp
+            test/metadata/parser/PPSLNullTest.cpp
             test/btree/btreeTestBuild.cpp
             test/btree/btreeTestSearch.cpp
             )
