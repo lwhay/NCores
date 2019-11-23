@@ -5,7 +5,7 @@
 #include <limits>
 #include <cstring>
 #include <vector>
-#include <c++/8.2.0/cmath>
+#include <cmath>
 #include "FileOperations.h"
 #include "CoresIterator.h"
 #include "CoresAppender.h"
