@@ -2,12 +2,8 @@
 // All rights reserved.
 // See file LICENSE for details.
 
-#include <cstring>
 #include <string>
-#include <map>
-#include <cerrno>
 #include <dirent.h>
-#include <unistd.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 
@@ -50,8 +46,11 @@ Status Env::CreateDirectory(const std::string &path) {
     if (IsDirectoryExist(path)) {
         return Status::OK();
     }
-
-    if (mkdir(path.c_str(), 0755) != 0) {
+#ifdef __MINGW64__
+    if (mkdir(path.c_str()) != 0) {
+#else
+        if (mkdir(path.c_str(), 0755) != 0) {
+#endif
         return Status::IOError(path, errno);
     }
     return Status::OK();
