@@ -218,7 +218,7 @@ void PPSLWriter(char *tblfile0 = "../res/tpch/part.tbl", char *tblfile1 = "../re
     rs.push_back((r));
     rrs.push_back(recordReader());
     for (int j = 0; j < r.fieldCount(); ++j) {
-        if (r.fieldAt(j).type() == AVRO_ARRAY) {
+        if (r.schema()->leafAt(j)->type() == AVRO_ARRAY) {
             c = GenericDatum(r.fieldAt(j).value<GenericArray>().schema()->leafAt(0));
             r = c.value<GenericRecord>();
             rs.push_back((r));
@@ -256,10 +256,11 @@ void PPSLWriter(char *tblfile0 = "../res/tpch/part.tbl", char *tblfile1 = "../re
         int supkey = tmp.fieldAt(1).value<int64_t>();
         if (partkey > vs.size()) {
             vs.resize(partkey, vp);
+        }if(vl[partkey - 1][supkey - 1].size()!=0){
+            tmp.fieldAt(5).value<GenericArray>().value() = vl[partkey - 1][supkey - 1];
+            tmp.schema()->setValid(5);
+            vl[partkey - 1][supkey - 1].clear();
         }
-        tmp.fieldAt(5).value<GenericArray>().value() = vl[partkey - 1][supkey - 1];
-        tmp.schema()->setValid(5);
-        vl[partkey - 1][supkey - 1].clear();
         vs[partkey - 1].push_back(GenericDatum(tmp));
     }
     for (int i = 0; i < vl.size(); ++i) {
@@ -280,6 +281,7 @@ void PPSLWriter(char *tblfile0 = "../res/tpch/part.tbl", char *tblfile1 = "../re
         GenericRecord tmp = rrs[0].getRecord();
         int partkey = tmp.fieldAt(0).value<int64_t>();
         tmp.fieldAt(9).value<GenericArray>().value() = vs[partkey - 1];
+//        cout<<partkey<<" "<<vs[partkey-1].size()<<endl;
         tmp.schema()->setValid(9);
         vs[partkey - 1].clear();
         vp.push_back(GenericDatum(tmp));
@@ -320,7 +322,7 @@ void nextread(char *datafile, char *schemafile = "../res/schema/ppsl/nest.avsc")
     rs.push_back((r));
     bs.push_back(0);
     for (int j = 0; j < r.fieldCount(); ++j) {
-        if (r.fieldAt(j).type() == AVRO_ARRAY) {
+        if (r.schema()->leafAt(j)->type() == AVRO_ARRAY) {
             c = GenericDatum(r.fieldAt(j).value<GenericArray>().schema()->leafAt(0));
             r = c.value<GenericRecord>();
             rs.push_back((r));
@@ -339,34 +341,97 @@ void nextread(char *datafile, char *schemafile = "../res/schema/ppsl/nest.avsc")
     shared_ptr<HeadReader> headreader(new HeadReader());
     headreader->readHeader(file_in);
     file_in.close();
-    cout << bs.size() << endl;
     fileReader part(GenericDatum(rs[0]), headreader, bs[0], bs[1] - 1, datafile);
     fileReader partsupp(GenericDatum(rs[1]), headreader, bs[1], bs[2] - 1, datafile);
-    fileReader lineitem(GenericDatum(rs[2]), headreader, bs[2], bs[3] - 1, datafile);
+    fileReader lineitem(GenericDatum(rs[2]), headreader, bs[2], bs[3] - 2, datafile);
 
     vector<GenericDatum> &pss = part.getArr(bs[1] - 1);
     pss = vector<GenericDatum>();
     vector<GenericDatum> &ls = partsupp.getArr(bs[2] - bs[1] - 1);
     ls = vector<GenericDatum>();
+
+    int ind=0,indp=0,indps=0;
     while (part.next()) {
+        indp++;
+//    part.next();
         int i = part.getArrsize();
-        if (i != 0)
-            int k = i;
         for (int j = 0; j < i; ++j) {
             partsupp.next();
+            indps++;
             pss.push_back(GenericDatum(partsupp.getRecord()));
             int k = partsupp.getArrsize();
             for (int l = 0; l < k; ++l) {
                 lineitem.next();
+                ind++;
                 ls.push_back(GenericDatum(lineitem.getRecord()));
             }
+            if (ls.size() != 0)
+                ls.clear();
         }
-        if (ls.size() != 0)
-            ls.clear();
         if (pss.size() != 0)
             pss.clear();
     }
 
+    cout<<"\n"<<indp;
+    cout<<"\n"<<indps;
+    cout<<"\n"<<ind;
+//
+//    int ind=0;
+//    cout<<ind<<":"<<endl;
+//    while (lineitem.next()){
+//        ind++;
+//        cout<<"\n"<<ind<<":";
+//    };
+
+}
+
+void filetest(){
+    SchemaReader sr("../res/schema/ppsl/nest.avsc", true);
+    ValidSchema *vschema = sr.read();
+    GenericDatum c = GenericDatum(vschema->root());
+
+    ifstream file_in;
+    file_in.open("./part/fileout.dat", ios_base::in | ios_base::binary);
+    if (!file_in.is_open()) {
+        cout << "cannot open" << "./ppsl/fileout.dat" << endl;
+    }
+    shared_ptr<HeadReader> headreader(new HeadReader());
+    headreader->readHeader(file_in);
+    file_in.close();/*
+    FILE* f=fopen("./part/fileout.dat","rb");
+    int i=2;
+    cout<<headreader->getColumns()[0].getOffset()<<" "<<headreader->getColumns()[1].getOffset()<<" "<<headreader->getColumns()[2].getOffset()<<endl;
+    fseek(f,headreader->getColumns()[i].getOffset(), SEEK_SET);
+    Block* blockreader = new Block(f, 0L, 0, headreader->getBlockSize());
+    int rmax=headreader->getColumns()[i].getBlock(0).getRowcount();
+    blockreader->loadFromFile(rmax);
+    int offsize=2;
+    vector<int>* offarrs = blockreader->initString(offsize);
+    int tmpi = (*offarrs)[0];
+    char *tmp = blockreader->getoffstring(tmpi);
+    cout<<tmpi<<" "<<tmp<<endl;*/
+
+    FILE* f=fopen("./part/file8.data","rb");
+    int i=8;
+    Block* blockreader = new Block(f, 0L, 0, headreader->getBlockSize());
+    int rsize=headreader->getColumns()[i].getBlock(0).getRowcount();
+    blockreader->loadFromFile(rsize);
+    vector<int>* offarrs = blockreader->initString(2);
+    int tmpi = (*offarrs)[0];
+    char *tmp = blockreader->getoffstring(tmpi);
+    cout<<blockreader->isvalid(0)<<endl;
+    cout<<rsize<<" "<<tmp<<endl;
+    tmpi = (*offarrs)[1];
+    tmp = blockreader->getoffstring(tmpi);
+    cout<<blockreader->isvalid(0)<<endl;
+    cout<<rsize<<" "<<tmp<<endl;
+    rsize=headreader->getColumns()[i].getBlock(1).getRowcount();
+    blockreader->loadFromFile(rsize);
+    offarrs = blockreader->initString(2);
+    tmpi = (*offarrs)[0];
+    tmp = blockreader->getoffstring(tmpi);
+    cout<<blockreader->isvalid(0)<<endl;
+    cout<<rsize<<" "<<tmp<<endl;
 }
 
 int main() {
@@ -374,8 +439,9 @@ int main() {
     system("mkdir partsupp");
     system("mkdir lineitem");
     system("mkdir ppsl");
-    PPSLWriter();
+//    PPSLWriter();
     nextread("./ppsl/fileout.dat");
+//    filetest();
     return 0;
 }
 

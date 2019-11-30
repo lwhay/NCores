@@ -319,7 +319,7 @@ public:
     }
 
     void loadFromFile(int rowcount) {
-        _cursor = ceil(rowcount / 8);
+        _cursor = ceil((double) rowcount / 8);
         _count = 0;
         fread(_cache, sizeof(char), _limit, _fp);
     }
@@ -389,18 +389,19 @@ public:
     template<typename type>
     type next() {
         int &tmp = _count;
-        type tmpc = function_<type>::_next(tmp, _cache);
+        type tmpc = function_<type>::_next(tmp, (char *) _cache + _cursor);
         return tmpc;
     }
 
     vector<int> *initString(int offsize) {
         char *tmpbuf = new char[4]();
         char *tmp = (char *) _cache + _cursor;
+
         vector<int> *offarr = new vector<int>();
-        memcpy(tmpbuf, (char *) _cache + _cursor, offsize);
-        int *tmpi = (int *) tmpbuf;
+        memcpy(tmpbuf, tmp, offsize);
+        int* tmpi = (int *) tmpbuf;
         offarr->push_back(*tmpi);
-        int num = *tmpi / offsize;
+        int num = (*tmpi - _cursor) / offsize;
         for (int j = 1; j < num; ++j) {
             tmp += offsize;
             memcpy(tmpbuf, tmp, offsize);
@@ -410,7 +411,7 @@ public:
     }
 
     char *getoffstring(int offset) {
-        return (char *) _cache + offset;
+        return (char *) _cache + _cursor + offset;
     }
 
 };
