@@ -691,9 +691,9 @@ public:
                     if (strl[i] % 8 == 0) zero = 1;
                     if (data_index[i] + zero + valid[i].size() >= blocksize) {
                         fwrite((char *) &valid[i][0], valid[i].size(), sizeof(char), data_files[i]);
+                        fwrite(data_buffers[i], sizeof(char), blocksize - valid[i].size(), data_files[i]);
                         valid[i].clear();
                         data_index[i] = 0;
-                        fwrite(data_buffers[i], sizeof(char), blocksize - valid[i].size(), data_files[i]);
                         block_num[i]++;
                         memset(data_buffers[i], 0, blocksize * sizeof(char));
                         heads_info[i][head_index[i]++] = strl[i];
