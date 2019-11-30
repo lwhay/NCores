@@ -326,7 +326,7 @@ void COfilesMerge(string file1, string file2, string file3, string path) {
     fclose(fp);
 }
 
-void COLWriter() {
+/*void COLWriter() {
     fstream schema_f("../res/schema/custom/nest.avsc", schema_f.binary | schema_f.in | schema_f.out);
     ostringstream buf;
     char ch;
@@ -399,7 +399,7 @@ void COLWriter() {
     lineitem.mergeFiles();
 
     COfilesMerge("./customer", "./orders", "./lineitem", "./result1");
-}
+}*/
 
 void NestedReader(string datafile, string schemafile) {
     fstream schema_f(schemafile, schema_f.binary | schema_f.in);
@@ -632,7 +632,7 @@ void NestedReader(string datafile, string schemafile) {
     }
 }
 
-void nextReader() {
+/*void nextReader() {
     fstream schema_f("../res/schema/nest.avsc", schema_f.binary | schema_f.in | schema_f.out);
     ostringstream buf;
     char ch;
@@ -666,7 +666,7 @@ void nextReader() {
     }
     tmpa[custkey - 1].push_back(GenericDatum(tmp));
     cout << tmpa[custkey - 1][0].value<GenericRecord>().fieldAt(0).value<long>() << endl;
-}
+}*/
 
 void LReader(string datafile, string schemafile, vector<int> rv) {
     Tracer tracer;
