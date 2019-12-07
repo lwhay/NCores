@@ -291,6 +291,13 @@ if (WITH_TESTS)
             )
 endif ()
 
+option(COLUMN_UNIT "build with column unit test" ON)
+if (COLUMN_UNIT)
+    set(COLUMN_UNITTEST
+            test/metadata/unittest/DummyUnitTest.cpp
+            )
+endif ()
+
 option(WITH_LSMTREE_TESTS "build with lsm tests" ON)
 if (WITH_LSMTREE_TESTS)
     if (WITH_SLOW_BLOOM_TEST)
@@ -446,6 +453,23 @@ foreach (sourcefile ${TEST_EXES})
         add_dependencies(check ${CMAKE_PROJECT_NAME}_${exename}${ARTIFACT_SUFFIX})
     endif ()
 endforeach (sourcefile ${TEST_EXES})
+
+set(COLUMNUNITTEST ${COLUMN_UNITTEST})
+foreach (sourcefile ${COLUMNUNITTEST})
+    get_filename_component(exename ${sourcefile} NAME_WE)
+    add_executable(${CMAKE_PROJECT_NAME}_${exename}${ARTIFACT_SUFFIX} ${sourcefile})
+    set_target_properties(${CMAKE_PROJECT_NAME}_${exename}${ARTIFACT_SUFFIX}
+            PROPERTIES EXCLUDE_FROM_DEFAULT_BUILD_RELEASE 1
+            EXCLUDE_FROM_DEFAULT_BUILD_MINRELEASE 1
+            EXCLUDE_FROM_DEFAULT_BUILD_RELWITHDEBINFO 1
+            OUTPUT_NAME ${exename}${ARTIFACT_SUFFIX}
+            )
+    target_link_libraries(${CMAKE_PROJECT_NAME}_${exename}${ARTIFACT_SUFFIX} gtest ${PTHREAD})
+    if (NOT "${exename}" MATCHES "db_sanity_test")
+        add_test(NAME ${exename} COMMAND ${exename}${ARTIFACT_SUFFIX})
+        add_dependencies(check ${CMAKE_PROJECT_NAME}_${exename}${ARTIFACT_SUFFIX})
+    endif ()
+endforeach (sourcefile ${COLUMNUNITTEST})
 
 set(LSMTREE_TEST_EXES ${LSMTREE_TESTS})
 foreach (sourcefile ${LSMTREE_TEST_EXES})
