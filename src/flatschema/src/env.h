@@ -10,6 +10,7 @@
 #include <string>
 #include <vector>
 
+#include <string.h>
 #include "bitweaving/status.h"
 #include "bitweaving/types.h"
 
