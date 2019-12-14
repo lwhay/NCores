@@ -131,21 +131,21 @@ typedef std::map<string, ColMeta> FetchTable;
 
 static NodePtr makePrimitive(const std::string &t) {
     if (t == "null") {
-        return NodePtr(new NodePrimitive(AVRO_NULL));
+        return NodePtr(new NodePrimitive(CORES_NULL));
     } else if (t == "boolean") {
-        return NodePtr(new NodePrimitive(AVRO_BOOL));
+        return NodePtr(new NodePrimitive(CORES_BOOL));
     } else if (t == "int") {
-        return NodePtr(new NodePrimitive(AVRO_INT));
+        return NodePtr(new NodePrimitive(CORES_INT));
     } else if (t == "long") {
-        return NodePtr(new NodePrimitive(AVRO_LONG));
+        return NodePtr(new NodePrimitive(CORES_LONG));
     } else if (t == "float") {
-        return NodePtr(new NodePrimitive(AVRO_FLOAT));
+        return NodePtr(new NodePrimitive(CORES_FLOAT));
     } else if (t == "double") {
-        return NodePtr(new NodePrimitive(AVRO_DOUBLE));
+        return NodePtr(new NodePrimitive(CORES_DOUBLE));
     } else if (t == "string") {
-        return NodePtr(new NodePrimitive(AVRO_STRING));
+        return NodePtr(new NodePrimitive(CORES_STRING));
     } else if (t == "bytes") {
-        return NodePtr(new NodePrimitive(AVRO_BYTES));
+        return NodePtr(new NodePrimitive(CORES_BYTES));
     } else {
         return NodePtr();
     }
@@ -250,10 +250,10 @@ class NodeUnion : public NodeImplUnion {
 public:
 
     NodeUnion() :
-            NodeImplUnion(AVRO_UNION) {}
+            NodeImplUnion(CORES_UNION) {}
 
     explicit NodeUnion(const MultiLeaves &types) :
-            NodeImplUnion(AVRO_UNION, NoName(), types, NoLeafNames(), NoSize()) {}
+            NodeImplUnion(CORES_UNION, NoName(), types, NoLeafNames(), NoSize()) {}
 
 //SchemaResolution resolve(const Node &reader)  const;
 
@@ -266,41 +266,41 @@ public:
                 std::string name;
                 const NodePtr &n = leafAttributes_.get(i);
                 switch (n->type()) {
-                    case AVRO_STRING:
+                    case CORES_STRING:
                         name = "string";
                         break;
-                    case AVRO_BYTES:
+                    case CORES_BYTES:
                         name = "bytes";
                         break;
-                    case AVRO_INT:
+                    case CORES_INT:
                         name = "int";
                         break;
-                    case AVRO_LONG:
+                    case CORES_LONG:
                         name = "long";
                         break;
-                    case AVRO_FLOAT:
+                    case CORES_FLOAT:
                         name = "float";
                         break;
-                    case AVRO_DOUBLE:
+                    case CORES_DOUBLE:
                         name = "double";
                         break;
-                    case AVRO_BOOL:
+                    case CORES_BOOL:
                         name = "bool";
                         break;
-                    case AVRO_NULL:
+                    case CORES_NULL:
                         name = "null";
                         break;
-                    case AVRO_ARRAY:
+                    case CORES_ARRAY:
                         name = "array";
                         break;
-                    case AVRO_MAP:
+                    case CORES_MAP:
                         name = "map";
                         break;
-                    case AVRO_RECORD:
-                    case AVRO_ENUM:
-                    case AVRO_UNION:
-                    case AVRO_FIXED:
-                    case AVRO_SYMBOLIC:
+                    case CORES_RECORD:
+                    case CORES_ENUM:
+                    case CORES_UNION:
+                    case CORES_FIXED:
+                    case CORES_SYMBOLIC:
                         name = n->name().fullname();
                         break;
                     default:
@@ -321,6 +321,8 @@ public:
     void invalidate() {}
 
     bool getValid(int i) const { return true; }
+
+    bool isRequired(int ind){return true; }
 };
 
 
@@ -358,36 +360,36 @@ static vector<uint8_t> toBin(const std::string &s) {
 
 static GenericDatum makeGenericDatum(NodePtr n, const Entity &e, const SymbolTable &st) {
     Type t = n->type();
-    if (t == AVRO_SYMBOLIC) {
+    if (t == CORES_SYMBOLIC) {
         n = st.find(n->name())->second;
         t = n->type();
     }
     switch (t) {
-        case AVRO_STRING:
+        case CORES_STRING:
             assertType(e, etString);
             return GenericDatum(e.stringValue());
-        case AVRO_BYTES:
+        case CORES_BYTES:
             assertType(e, etString);
             return GenericDatum(toBin(e.stringValue()));
-        case AVRO_INT:
+        case CORES_INT:
             assertType(e, etLong);
             return GenericDatum(static_cast<int32_t>(e.longValue()));
-        case AVRO_LONG:
+        case CORES_LONG:
             assertType(e, etLong);
             return GenericDatum(e.longValue());
-        case AVRO_FLOAT:
+        case CORES_FLOAT:
             assertType(e, etDouble);
             return GenericDatum(static_cast<float>(e.doubleValue()));
-        case AVRO_DOUBLE:
+        case CORES_DOUBLE:
             assertType(e, etDouble);
             return GenericDatum(e.doubleValue());
-        case AVRO_BOOL:
+        case CORES_BOOL:
             assertType(e, etBool);
             return GenericDatum(e.boolValue());
-        case AVRO_NULL:
+        case CORES_NULL:
             assertType(e, etNull);
             return GenericDatum();
-        case AVRO_RECORD: {
+        case CORES_RECORD: {
             assertType(e, etObject);
             GenericRecord result(n);
             const map<string, Entity> &v = e.objectValue();
@@ -402,10 +404,10 @@ static GenericDatum makeGenericDatum(NodePtr n, const Entity &e, const SymbolTab
             }
             return GenericDatum(n, result);
         }
-            /*case AVRO_ENUM:
+            /*case CORES_ENUM:
                 assertType(e, etString);
                 return GenericDatum(n, GenericEnum(n, e.stringValue()));
-            case AVRO_ARRAY:
+            case CORES_ARRAY:
             {
                 assertType(e, json::etArray);
                 GenericArray result(n);
@@ -416,7 +418,7 @@ static GenericDatum makeGenericDatum(NodePtr n, const Entity &e, const SymbolTab
                 }
                 return GenericDatum(n, result);
             }
-            case AVRO_MAP:
+            case CORES_MAP:
             {
                 assertType(e, json::etObject);
                 GenericMap result(n);
@@ -428,7 +430,7 @@ static GenericDatum makeGenericDatum(NodePtr n, const Entity &e, const SymbolTab
                 }
                 return GenericDatum(n, result);
             }
-            case AVRO_UNION:
+            case CORES_UNION:
             {
                 GenericUnion result(n);
                 string name;
@@ -458,7 +460,7 @@ static GenericDatum makeGenericDatum(NodePtr n, const Entity &e, const SymbolTab
     //            throw Exception(boost::format("Invalid default value %1%") %
     //                            e.toString());
             }*/
-        case AVRO_FIXED:
+        case CORES_FIXED:
             assertType(e, etString);
             return GenericDatum(n, GenericFixed(n, toBin(e.stringValue())));
 //        default:
@@ -614,10 +616,10 @@ class NodeArray : public NodeImplArray {
 public:
 
     NodeArray() :
-            NodeImplArray(AVRO_ARRAY) {}
+            NodeImplArray(CORES_ARRAY) {}
 
     explicit NodeArray(const SingleLeaf &items) :
-            NodeImplArray(AVRO_ARRAY, NoName(), items, NoLeafNames(), NoSize()) {}
+            NodeImplArray(CORES_ARRAY, NoName(), items, NoLeafNames(), NoSize()) {}
 
 //SchemaResolution resolve(const Node &reader)  const;
 
@@ -632,6 +634,8 @@ public:
     void invalidate() {}
 
     bool getValid(int i) const { return true; }
+
+    bool isRequired(int ind) {return true; }
 };
 
 
@@ -758,9 +762,9 @@ public:
             ValidSchema *vschema = new ValidSchema(n);
             return vschema;
         } else {
-            fstream fetch_f("../res/schema/custom/query.qsc", fetch_f.binary | fetch_f.in);
+            fstream fetch_f(schemafile, fetch_f.binary | fetch_f.in);
             if (!fetch_f.is_open()) {
-                cout << "../res/schema/custom/query.qsc" << "cannot open" << endl;
+                cout << schemafile << "cannot open" << endl;
             }
             ostringstream buf_f;
             char ch;

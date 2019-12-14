@@ -1,6 +1,7 @@
 //
-// Created by iclab on 12/6/19.
+// Created by Vince Tu on 2019/12/14.
 //
+
 
 #include <locale>
 #include <stack>
@@ -37,7 +38,11 @@ public:
         vector<string> v;
         SplitString(line, v, "|");
         for (int i = 0; i < v.size(); ++i) {
-            switch (record->fieldAt(i).type()) {
+            if(v[i].size()==0){
+                record->fieldAt(i)=GenericDatum();
+                continue;
+            }
+            switch (record->schema()->leafAt(i)->type()) {
                 case CORES_INT: {
                     int tmp = stoi(v[i]);
                     record->fieldAt(i) = tmp;
@@ -83,7 +88,7 @@ public:
 };
 
 
-void requiredfilesMerge(string file1, string file2, string path) {
+void optionfilesMerge(string file1, string file2, string path) {
     cout << "file1" << endl;
     ifstream file_1;
     file_1.open(file1 + "/fileout.dat", ios_base::in | ios_base::binary);
@@ -176,10 +181,10 @@ void requiredfilesMerge(string file1, string file2, string path) {
 }
 
 
-void requiredWriter(char *tblfile1 = "../res/test/requiredtest/orders.tbl",
-                    char *tblfile2 = "../res/test/requiredtest/lineitem.tbl",
+void optionWriter(char *tblfile1 = "../res/test/optiontest/orders.tbl",
+                    char *tblfile2 = "../res/test/optiontest/lineitem.tbl",
                     char *result0 = "./layer0", char *result1 = "./layer1",
-                    char *result = "./tmpresult", char *schema = "../res/test/requiredtest/nest.avsc",
+                    char *result = "./tmpresult", char *schema = "../res/test/optiontest/nest.avsc",
                     int blocksize = 1024) {
     SchemaReader sr(schema, true);
     ValidSchema *vschema = sr.read();
@@ -228,27 +233,27 @@ void requiredWriter(char *tblfile1 = "../res/test/requiredtest/orders.tbl",
         vl[orderkey - 1];
         vo.push_back(GenericDatum(tmp));
     }
-    BatchFileWriter file0(rs[0], result0, blocksize);
-    BatchFileWriter file1(rs[1], result1, blocksize);
+    BatchFileWriter file0(rs[0], result0, blocksize,true);
+    BatchFileWriter file1(rs[1], result1, blocksize,true);
 
     for (auto iter0:vo) {
-        file0.writeRecord(iter0.value<GenericRecord>());
+        file0.write(iter0.value<GenericRecord>());
         for (auto iter1:iter0.value<GenericRecord>().fieldAt(9).value<GenericArray>().value()) {
-            file1.writeRecord(iter1.value<GenericRecord>());
+            file1.write(iter1.value<GenericRecord>());
         }
     }
 
 
-    file0.writeRest();
-    file0.mergeFiles();
-    file1.writeRest();
-    file1.mergeFiles();
+    file0.writeRest(true);
+    file0.mergeFiles(true);
+    file1.writeRest(true);
+    file1.mergeFiles(true);
 
-    requiredfilesMerge(result0, result1, result);
+    optionfilesMerge(result0, result1, result);
 }
 
-int requiredReader(bool flag, char *datafile = "./tmpresult/fileout.dat",
-                   char *schema = "../res/test/requiredtest/nest.avsc") {
+int optionReader(bool flag, char *datafile = "./tmpresult/fileout.dat",
+                   char *schema = "../res/test/optiontest/nest.avsc") {
     SchemaReader sr(schema, true);
     ValidSchema *vschema = sr.read();
     GenericDatum c = GenericDatum(vschema->root());
@@ -277,8 +282,8 @@ int requiredReader(bool flag, char *datafile = "./tmpresult/fileout.dat",
     shared_ptr<HeadReader> headreader(new HeadReader());
     headreader->readHeader(file_in);
     file_in.close();
-    fileReader fr0(GenericDatum(rs[0]), headreader, bs[0], bs[1] - 1, datafile,true);
-    fileReader fr1(GenericDatum(rs[1]), headreader, bs[1], bs[2] - 1, datafile,true);
+    fileReader fr0(GenericDatum(rs[0]), headreader, bs[0], bs[1] - 1, datafile);
+    fileReader fr1(GenericDatum(rs[1]), headreader, bs[1], bs[2] - 1, datafile);
 
     vector<GenericDatum> &pss = fr0.getArr(bs[1] - 1);
     pss = vector<GenericDatum>();
@@ -287,6 +292,9 @@ int requiredReader(bool flag, char *datafile = "./tmpresult/fileout.dat",
     while (fr0.next()) {
         indp++;
         int i = fr0.getArrsize();
+        cout<<fr0.getRecord().fieldAt(0).value<int64_t >()<<" ";
+        cout<<fr0.getRecord().fieldAt(4).value<const char*>()<<" ";
+        cout<<fr0.getRecord().fieldAt(8).value<const char*>()<<endl;
         for (int j = 0; j < i; ++j) {
             fr1.next();
             indps++;
@@ -312,12 +320,11 @@ void SETUP() {
     system("mkdir layer1");
     system("mkdir tmpresult");
 
-    requiredWriter();
+    optionWriter();
 }
 
 TEST(SchemaTest, DummyTest) {
-    EXPECT_EQ(1500 , requiredReader(true));
-    EXPECT_EQ(6005 , requiredReader(false));
+    EXPECT_EQ(1500 , optionReader(true));
 }
 
 void TEARDOWN() {

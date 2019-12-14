@@ -295,6 +295,7 @@ option(COLUMN_UNIT "build with column unit test" ON)
 if (COLUMN_UNIT)
     set(COLUMN_UNITTEST
             test/metadata/unittest/DummyUnitTest.cpp
+            test/metadata/unittest/OptionUnitTest.cpp
             )
 endif ()
 

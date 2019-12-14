@@ -18,7 +18,7 @@ static bool validate(const NodePtr &node, SymbolMap &symbolMap) {
         SymbolMap::iterator it = symbolMap.find(nm);
         bool found = it != symbolMap.end() && nm == it->first;
 
-        if (node->type() == AVRO_SYMBOLIC) {
+        if (node->type() == CORES_SYMBOLIC) {
             if (!found) {
                 //throw Exception(std::format("Symbolic name \"%1%\" is unknown") %
                 //node->name());

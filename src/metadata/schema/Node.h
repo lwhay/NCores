@@ -11,28 +11,28 @@ using namespace std;
 
 enum Type {
 
-    AVRO_STRING,    /*!< String */
-    AVRO_BYTES,     /*!< Sequence of variable length bytes data */
-    AVRO_INT,       /*!< 32-bit integer */
-    AVRO_LONG,      /*!< 64-bit integer */
-    AVRO_FLOAT,     /*!< Floating point number */
-    AVRO_DOUBLE,    /*!< Double precision floating point number */
-    AVRO_BOOL,      /*!< Boolean value */
-    AVRO_NULL,      /*!< Null */
+    CORES_STRING,    /*!< String */
+    CORES_BYTES,     /*!< Sequence of variable length bytes data */
+    CORES_INT,       /*!< 32-bit integer */
+    CORES_LONG,      /*!< 64-bit integer */
+    CORES_FLOAT,     /*!< Floating point number */
+    CORES_DOUBLE,    /*!< Double precision floating point number */
+    CORES_BOOL,      /*!< Boolean value */
+    CORES_NULL,      /*!< Null */
 
-    AVRO_RECORD,    /*!< Record, a sequence of fields */
-    AVRO_ENUM,      /*!< Enumeration */
-    AVRO_ARRAY,     /*!< Homogeneous array of some specific type */
-    AVRO_MAP,       /*!< Homogeneous map from string to some specific type */
-    AVRO_UNION,     /*!< Union of one or more types */
-    AVRO_FIXED,     /*!< Fixed number of bytes */
+    CORES_RECORD,    /*!< Record, a sequence of fields */
+    CORES_ENUM,      /*!< Enumeration */
+    CORES_ARRAY,     /*!< Homogeneous array of some specific type */
+    CORES_MAP,       /*!< Homogeneous map from string to some specific type */
+    CORES_UNION,     /*!< Union of one or more types */
+    CORES_FIXED,     /*!< Fixed number of bytes */
 
-    AVRO_NUM_TYPES, /*!< Marker */
+    CORES_NUM_TYPES, /*!< Marker */
 
     // The following is a pseudo-type used in implementation
 
-    AVRO_SYMBOLIC = AVRO_NUM_TYPES, /*!< User internally to avoid circular references. */
-    AVRO_UNKNOWN = -1 /*!< Used internally. */
+    CORES_SYMBOLIC = CORES_NUM_TYPES, /*!< User internally to avoid circular references. */
+    CORES_UNKNOWN = -1 /*!< Used internally. */
 
 };
 
@@ -166,6 +166,8 @@ public:
     virtual bool getValid(int i) const = 0;
 
     virtual void invalidate() = 0;
+
+    virtual bool isRequired(int ind) = 0;
 
 //virtual SchemaResolution resolve(const Node &reader) const = 0;
 
@@ -479,13 +481,13 @@ protected:
 //    SchemaResolution furtherResolution(const Node &reader) const {
 //        SchemaResolution match = RESOLVE_NO_MATCH;
 //
-//        if (reader.type() == AVRO_SYMBOLIC) {
+//        if (reader.type() == CORES_SYMBOLIC) {
 //
 //            // resolve the symbolic type, and check again
 //            const NodePtr &node = reader.leafAt(0);
 //            match = resolve(*node);
 //        }
-//        else if(reader.type() == AVRO_UNION) {
+//        else if(reader.type() == CORES_UNION) {
 //
 //            // in this case, need to see if there is an exact match for the
 //            // writer's type, or if not, the first one that can be promoted to a
@@ -563,8 +565,9 @@ public:
 
     void setValid(int i) {}
 
-
     bool getValid(int i) const { return true; }
+
+    bool isRequired(int ind) {return true;}
 };
 
 class NodeSymbolic : public NodeImplSymbolic {
@@ -573,13 +576,13 @@ class NodeSymbolic : public NodeImplSymbolic {
 public:
 
     NodeSymbolic() :
-            NodeImplSymbolic(AVRO_SYMBOLIC) {}
+            NodeImplSymbolic(CORES_SYMBOLIC) {}
 
     explicit NodeSymbolic(const HasName &name) :
-            NodeImplSymbolic(AVRO_SYMBOLIC, name, NoLeaves(), NoLeafNames(), NoSize()) {}
+            NodeImplSymbolic(CORES_SYMBOLIC, name, NoLeaves(), NoLeafNames(), NoSize()) {}
 
     NodeSymbolic(const HasName &name, const NodePtr n) :
-            NodeImplSymbolic(AVRO_SYMBOLIC, name, NoLeaves(), NoLeafNames(), NoSize()), actualNode_(n) {}
+            NodeImplSymbolic(CORES_SYMBOLIC, name, NoLeaves(), NoLeafNames(), NoSize()), actualNode_(n) {}
 //SchemaResolution resolve(const Node &reader)  const;
 
     void printJson(std::ostream &os, int depth) const {}
@@ -610,6 +613,8 @@ public:
 
     bool getValid(int i) const { return true; }
 
+    bool isRequired(int ind){return true; }
+
 protected:
 
     NodeWeakPtr actualNode_;
@@ -621,13 +626,13 @@ class NodeRecord : public NodeImplRecord {
     std::vector<bool> requiredBool;
     std::vector<bool> validBool;
 public:
-    NodeRecord() : NodeImplRecord(AVRO_RECORD) {}
+    NodeRecord() : NodeImplRecord(CORES_RECORD) {}
 
     NodeRecord(const HasName &name, const MultiLeaves &fields,
                const LeafNames &fieldsNames,
                const std::vector<GenericDatum> &dv,
                const std::vector<bool> &rb) :
-            NodeImplRecord(AVRO_RECORD, name, fields, fieldsNames, NoSize()),
+            NodeImplRecord(CORES_RECORD, name, fields, fieldsNames, NoSize()),
             defaultValues(dv),
             requiredBool(rb),
             validBool(vector<bool>(leafNameAttributes_.size(), false)) {
@@ -652,6 +657,12 @@ public:
         if (i >= leafNameAttributes_.size())
             cout << "out of the limit" << endl;
         validBool[i] = true;
+    }
+
+    bool isRequired(int i) {
+        if (i >= leafNameAttributes_.size())
+            cout << "out of the limit" << endl;
+        return requiredBool[i];
     }
 
     void invalidate() {
@@ -681,10 +692,10 @@ class NodeFixed : public NodeImplFixed {
 public:
 
     NodeFixed() :
-            NodeImplFixed(AVRO_FIXED) {}
+            NodeImplFixed(CORES_FIXED) {}
 
     NodeFixed(const HasName &name, const HasSize &size) :
-            NodeImplFixed(AVRO_FIXED, name, NoLeaves(), NoLeafNames(), size) {}
+            NodeImplFixed(CORES_FIXED, name, NoLeaves(), NoLeafNames(), size) {}
 
 //SchemaResolution resolve(const Node &reader)  const;
 
@@ -702,6 +713,8 @@ public:
     void invalidate() {}
 
     bool getValid(int i) const { return true; }
+
+    bool isRequired(int ind) {return true; }
 };
 
 template<class A, class B, class C, class D>
@@ -722,7 +735,7 @@ NodeImpl<A, B, C, D>::printBasicInfo(std::ostream &os) const {
         if (C::hasAttribute) {
             os << "name " << nameAt(i) << '\n';
         }
-        if (type() != AVRO_SYMBOLIC && leafAttributes_.hasAttribute) {
+        if (type() != CORES_SYMBOLIC && leafAttributes_.hasAttribute) {
             leafAt(i)->printBasicInfo(os);
         }
     }

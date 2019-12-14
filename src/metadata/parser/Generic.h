@@ -10,7 +10,7 @@ using namespace std;
 class GenericRecord;
 
 inline NodePtr resolveSymbol(const NodePtr &node) {
-    if (node->type() != AVRO_SYMBOLIC) {
+    if (node->type() != CORES_SYMBOLIC) {
         //throw Exception("Only symbolic nodes may be resolved");
     }
     std::shared_ptr<NodeSymbolic> symNode = std::static_pointer_cast<NodeSymbolic>(node);
@@ -31,7 +31,7 @@ public:
     std::any value_;
 
     /**
-     * The avro data type this datum holds.
+     * The CORES data type this datum holds.
      */
     Type type() const {
         return type_;
@@ -40,7 +40,7 @@ public:
     /**
      * Returns the value held by this datum.
      * T The type for the value. This must correspond to the
-     * avro type returned by type().
+     * CORES type returned by type().
      */
     template<typename T>
     const T &value() const {
@@ -54,7 +54,7 @@ public:
      * be changed.
      *
      * T The type for the value. This must correspond to the
-     * avro type returned by type().
+     * CORES type returned by type().
      */
     template<typename T>
     T &value() {
@@ -64,7 +64,7 @@ public:
     /**
      * Returns true if and only if this datum is a union.
      */
-    bool isUnion() const { return type_ == AVRO_UNION; }
+    bool isUnion() const { return type_ == CORES_UNION; }
 
     /**
      * Returns the index of the current branch, if this is a union.
@@ -78,42 +78,42 @@ public:
      */
     void selectBranch(size_t branch);
 
-    /// Makes a new AVRO_NULL datum.
-    GenericDatum() : type_(AVRO_NULL) {}
+    /// Makes a new CORES_NULL datum.
+    GenericDatum() : type_(CORES_NULL) {}
 
-    /// Makes a new AVRO_BOOL datum whose value is of type bool.
-    GenericDatum(bool v) : type_(AVRO_BOOL), value_(v) {}
+    /// Makes a new CORES_BOOL datum whose value is of type bool.
+    GenericDatum(bool v) : type_(CORES_BOOL), value_(v) {}
 
-    /// Makes a new AVRO_INT datum whose value is of type int32_t.
-    GenericDatum(int32_t v) : type_(AVRO_INT), value_(v) {}
+    /// Makes a new CORES_INT datum whose value is of type int32_t.
+    GenericDatum(int32_t v) : type_(CORES_INT), value_(v) {}
 
-    /// Makes a new AVRO_LONG datum whose value is of type int64_t.
-    GenericDatum(int64_t v) : type_(AVRO_LONG), value_(v) {}
+    /// Makes a new CORES_LONG datum whose value is of type int64_t.
+    GenericDatum(int64_t v) : type_(CORES_LONG), value_(v) {}
 
 #ifdef __APPLE__
 
-    GenericDatum(long v) : type_(AVRO_LONG), value_(v) {}
+    GenericDatum(long v) : type_(CORES_LONG), value_(v) {}
 
 #endif
 
-    /// Makes a new AVRO_FLOAT datum whose value is of type float.
-    GenericDatum(float v) : type_(AVRO_FLOAT), value_(v) {}
+    /// Makes a new CORES_FLOAT datum whose value is of type float.
+    GenericDatum(float v) : type_(CORES_FLOAT), value_(v) {}
 
-    /// Makes a new AVRO_DOUBLE datum whose value is of type double.
-    GenericDatum(double v) : type_(AVRO_DOUBLE), value_(v) {}
+    /// Makes a new CORES_DOUBLE datum whose value is of type double.
+    GenericDatum(double v) : type_(CORES_DOUBLE), value_(v) {}
 
-    /// Makes a new AVRO_STRING datum whose value is of type std::string.
-    GenericDatum(const std::string &v) : type_(AVRO_STRING), value_(v) {}
+    /// Makes a new CORES_STRING datum whose value is of type std::string.
+    GenericDatum(const std::string &v) : type_(CORES_STRING), value_(v) {}
 
-    GenericDatum(const char *v) : type_(AVRO_STRING), value_(v) {}
+    GenericDatum(const char *v) : type_(CORES_STRING), value_(v) {}
 
-    /// Makes a new AVRO_BYTES datum whose value is of type
+    /// Makes a new CORES_BYTES datum whose value is of type
     /// std::vector<uint8_t>.
     GenericDatum(const std::vector<uint8_t> &v) :
-            type_(AVRO_BYTES), value_(v) {}
+            type_(CORES_BYTES), value_(v) {}
 
     GenericDatum(char v) :
-            type_(AVRO_BYTES), value_(v) {}
+            type_(CORES_BYTES), value_(v) {}
 
 
     GenericDatum(GenericRecord *v);
@@ -121,19 +121,19 @@ public:
     GenericDatum(GenericRecord v);
 
     /**
-     * Constructs a datum corresponding to the given avro type.
+     * Constructs a datum corresponding to the given CORES type.
      * The value will the appropraite default corresponding to the
      * data type.
-     * \param schema The schema that defines the avro type.
+     * \param schema The schema that defines the CORES type.
      */
     GenericDatum(const NodePtr &schema) : type_(schema->type()) {
         init(schema);
     }
 
     /**
-     * Constructs a datum corresponding to the given avro type and set
+     * Constructs a datum corresponding to the given CORES type and set
      * the value.
-     * \param schema The schema that defines the avro type.
+     * \param schema The schema that defines the CORES type.
      * \param v The value for this type.
      */
     template<typename T>
@@ -149,10 +149,10 @@ public:
 //    }
 
     /**
-     * Constructs a datum corresponding to the given avro type.
+     * Constructs a datum corresponding to the given CORES type.
      * The value will the appropraite default corresponding to the
      * data type.
-     * \param schema The schema that defines the avro type.
+     * \param schema The schema that defines the CORES type.
      */
     //GenericDatum(const ValidSchema& schema);
 };
@@ -184,11 +184,11 @@ class GenericUnion : public GenericContainer {
 public:
 /**
  * Constructs a generic union corresponding to the given schema \p schema,
- * and the given value. The schema should be of Avro type union
+ * and the given value. The schema should be of CORES type union
  * and the value should correspond to one of the branches of the union.
  */
     GenericUnion(const NodePtr &schema) :
-            GenericContainer(AVRO_UNION, schema), curBranch_(schema->leaves()) {
+            GenericContainer(CORES_UNION, schema), curBranch_(schema->leaves()) {
     }
 
 /**
@@ -229,10 +229,10 @@ class GenericRecord : public GenericContainer {
 public:
 /**
  * Constructs a generic record corresponding to the given schema \p schema,
- * which should be of Avro type record.
+ * which should be of CORES type record.
  */
     GenericRecord(const NodePtr &schema) :
-            GenericContainer(AVRO_RECORD, schema) {
+            GenericContainer(CORES_RECORD, schema) {
         fields_.resize(schema->leaves());
         for (size_t i = 0; i < schema->leaves(); ++i) {
             fields_[i] = GenericDatum(schema->leafAt(i));
@@ -319,9 +319,9 @@ public:
 
 /**
  * Constructs a generic array corresponding to the given schema \p schema,
- * which should be of Avro type array.
+ * which should be of CORES type array.
  */
-    GenericArray(const NodePtr &schema) : GenericContainer(AVRO_ARRAY, schema) {
+    GenericArray(const NodePtr &schema) : GenericContainer(CORES_ARRAY, schema) {
     }
 
 /**
@@ -347,14 +347,14 @@ class GenericFixed : public GenericContainer {
 public:
 /**
  * Constructs a generic enum corresponding to the given schema \p schema,
- * which should be of Avro type fixed.
+ * which should be of CORES type fixed.
  */
-    GenericFixed(const NodePtr &schema) : GenericContainer(AVRO_FIXED, schema) {
+    GenericFixed(const NodePtr &schema) : GenericContainer(CORES_FIXED, schema) {
         value_.resize(schema->fixedSize());
     }
 
     GenericFixed(const NodePtr &schema, const std::vector<uint8_t> &v) :
-            GenericContainer(AVRO_FIXED, schema), value_(v) {}
+            GenericContainer(CORES_FIXED, schema), value_(v) {}
 
 /**
  * Returns the contents of this fixed.
@@ -372,58 +372,58 @@ public:
 };
 
 GenericDatum::GenericDatum(GenericRecord *v) {
-    type_ = AVRO_RECORD;
+    type_ = CORES_RECORD;
     value_ = *v;
 }
 
 GenericDatum::GenericDatum(GenericRecord v) {
-    type_ = AVRO_RECORD;
+    type_ = CORES_RECORD;
     value_ = v;
 }
 
 void GenericDatum::init(const NodePtr &schema) {
     NodePtr sc = schema;
-    if (type_ == AVRO_SYMBOLIC) {
+    if (type_ == CORES_SYMBOLIC) {
         sc = resolveSymbol(schema);
         type_ = sc->type();
     }
     switch (type_) {
-        case AVRO_NULL:
+        case CORES_NULL:
             break;
-        case AVRO_BOOL:
+        case CORES_BOOL:
             value_ = bool();
             break;
-        case AVRO_INT:
+        case CORES_INT:
             value_ = int32_t();
             break;
-        case AVRO_LONG:
+        case CORES_LONG:
             value_ = int64_t();
             break;
-        case AVRO_FLOAT:
+        case CORES_FLOAT:
             value_ = float();
             break;
-        case AVRO_DOUBLE:
+        case CORES_DOUBLE:
             value_ = double();
             break;
-        case AVRO_STRING:
+        case CORES_STRING:
             value_ = string();
             break;
-        case AVRO_BYTES:
+        case CORES_BYTES:
             value_ = vector<uint8_t>();
             break;
-        case AVRO_FIXED:
+        case CORES_FIXED:
             value_ = GenericFixed(sc);
             break;
-        case AVRO_RECORD:
+        case CORES_RECORD:
             value_ = GenericRecord(sc);
             break;
-        case AVRO_ARRAY:
+        case CORES_ARRAY:
             value_ = GenericArray(sc);
             break;
-//                case AVRO_MAP:
+//                case CORES_MAP:
 //                    value_ = GenericMap(sc);
 //                    break;
-//                case AVRO_UNION:
+//                case CORES_UNION:
 //                    value_ = GenericUnion(sc);
 //                    break;
 //                default:

@@ -463,7 +463,7 @@ void NestedReader(string datafile, string schemafile) {
     for (int k1 = 0; k1 < headreader->getRowCount(); ++k1) {
         for (int i :r1) {
             switch (r[0]->fieldAt(i).type()) {
-                case AVRO_LONG: {
+                case CORES_LONG: {
                     if (rind[i] == rcounts[i]) {
                         blockreaders[i]->loadFromFile();
                         rind[i] = 0;
@@ -476,7 +476,7 @@ void NestedReader(string datafile, string schemafile) {
                     rind[i]++;
                     break;
                 }
-                case AVRO_INT: {
+                case CORES_INT: {
                     if (rind[i] == rcounts[i]) {
                         blockreaders[i]->loadFromFile();
                         rind[i] = 0;
@@ -489,7 +489,7 @@ void NestedReader(string datafile, string schemafile) {
                     rind[i]++;
                     break;
                 }
-                case AVRO_STRING: {
+                case CORES_STRING: {
                     if (rind[i] == rcounts[i]) {
                         blockreaders[i]->loadFromFile();
                         rind[i] = 0;
@@ -507,7 +507,7 @@ void NestedReader(string datafile, string schemafile) {
                     rind[i]++;
                     break;
                 }
-                case AVRO_FLOAT: {
+                case CORES_FLOAT: {
                     if (rind[i] == rcounts[i]) {
                         blockreaders[i]->loadFromFile();
                         rind[i] = 0;
@@ -520,7 +520,7 @@ void NestedReader(string datafile, string schemafile) {
                     rind[i]++;
                     break;
                 }
-                case AVRO_BYTES: {
+                case CORES_BYTES: {
                     if (rind[i] == rcounts[i]) {
                         blockreaders[i]->loadFromFile();
                         rind[i] = 0;
@@ -533,7 +533,7 @@ void NestedReader(string datafile, string schemafile) {
                     rind[i]++;
                     break;
                 }
-                case AVRO_ARRAY: {
+                case CORES_ARRAY: {
                     if (rind[i] == rcounts[i]) {
                         blockreaders[i]->loadFromFile();
                         rind[i] = 0;
@@ -548,7 +548,7 @@ void NestedReader(string datafile, string schemafile) {
                     for (int j = 0; j < arrsize; ++j) {
                         for (int k:r2) {
                             switch (r[1]->fieldAt(k - 10).type()) {
-                                case AVRO_LONG: {
+                                case CORES_LONG: {
                                     if (rind[k] == rcounts[k]) {
                                         blockreaders[k]->loadFromFile();
                                         rind[k] = 0;
@@ -561,7 +561,7 @@ void NestedReader(string datafile, string schemafile) {
                                     rind[k]++;
                                     break;
                                 }
-                                case AVRO_INT: {
+                                case CORES_INT: {
                                     if (rind[k] == rcounts[k]) {
                                         blockreaders[k]->loadFromFile();
                                         rind[k] = 0;
@@ -574,7 +574,7 @@ void NestedReader(string datafile, string schemafile) {
                                     rind[k]++;
                                     break;
                                 }
-                                case AVRO_STRING: {
+                                case CORES_STRING: {
                                     if (rind[k] == rcounts[k]) {
                                         blockreaders[k]->loadFromFile();
                                         rind[k] = 0;
@@ -592,7 +592,7 @@ void NestedReader(string datafile, string schemafile) {
                                     rind[k]++;
                                     break;
                                 }
-                                case AVRO_FLOAT: {
+                                case CORES_FLOAT: {
                                     if (rind[k] == rcounts[k]) {
                                         blockreaders[k]->loadFromFile();
                                         rind[k] = 0;
@@ -605,7 +605,7 @@ void NestedReader(string datafile, string schemafile) {
                                     rind[k]++;
                                     break;
                                 }
-                                case AVRO_BYTES: {
+                                case CORES_BYTES: {
                                     if (rind[k] == rcounts[k]) {
                                         blockreaders[k]->loadFromFile();
                                         rind[k] = 0;
@@ -738,7 +738,7 @@ void LReader(string datafile, string schemafile, vector<int> rv) {
     for (; bind[rv[0]] < max;) {
         for (int i :rv) {
             switch (r[1]->fieldAt(i).type()) {
-                case AVRO_LONG: {
+                case CORES_LONG: {
                     if (rind[i] == rcounts[i]) {
                         blockreaders[i]->loadFromFile();
                         rind[i] = 0;
@@ -751,7 +751,7 @@ void LReader(string datafile, string schemafile, vector<int> rv) {
                     rind[i]++;
                     break;
                 }
-                case AVRO_INT: {
+                case CORES_INT: {
                     if (rind[i] == rcounts[i]) {
                         blockreaders[i]->loadFromFile();
                         rind[i] = 0;
@@ -764,7 +764,7 @@ void LReader(string datafile, string schemafile, vector<int> rv) {
                     rind[i]++;
                     break;
                 }
-                case AVRO_STRING: {
+                case CORES_STRING: {
                     if (rind[i] == rcounts[i]) {
                         blockreaders[i]->loadFromFile();
                         rind[i] = 0;
@@ -784,7 +784,7 @@ void LReader(string datafile, string schemafile, vector<int> rv) {
                     rind[i]++;
                     break;
                 }
-                case AVRO_FLOAT: {
+                case CORES_FLOAT: {
                     if (rind[i] == rcounts[i]) {
                         blockreaders[i]->loadFromFile();
                         rind[i] = 0;
@@ -797,7 +797,7 @@ void LReader(string datafile, string schemafile, vector<int> rv) {
                     rind[i]++;
                     break;
                 }
-                case AVRO_BYTES: {
+                case CORES_BYTES: {
                     if (rind[i] == rcounts[i]) {
                         blockreaders[i]->loadFromFile();
                         rind[i] = 0;
@@ -930,7 +930,7 @@ void filterRead(ValidSchema *vs, vector<vector<colParser>> vcp, string datafile)
     GenericRecord r(c.value<GenericRecord>());
     rs.push_back(GenericRecord(r));
     for (int j = 0; j < r.fieldCount(); ++j) {
-        if (r.fieldAt(j).type() == AVRO_ARRAY) {
+        if (r.fieldAt(j).type() == CORES_ARRAY) {
             c = GenericDatum(r.fieldAt(j).value<GenericArray>().schema()->leafAt(0));
             r = c.value<GenericRecord>();
             rs.push_back(GenericRecord(r));
@@ -951,7 +951,7 @@ void filterRead(ValidSchema *vs, vector<vector<colParser>> vcp, string datafile)
     for (int k1 = 0; k1 < headreader->getRowCount(); ++k1) {
         for (colParser i :vcp[0]) {
             switch (rs[0].fieldAt(i.subcol).type()) {
-                case AVRO_LONG: {
+                case CORES_LONG: {
                     if (rind[i.subcol] == rcounts[i.subcol]) {
                         blockreaders[i.subcol]->loadFromFile();
                         rind[i.subcol] = 0;
@@ -967,7 +967,7 @@ void filterRead(ValidSchema *vs, vector<vector<colParser>> vcp, string datafile)
                     rind[i.subcol]++;
                     break;
                 }
-                case AVRO_INT: {
+                case CORES_INT: {
                     if (rind[i.subcol] == rcounts[i.subcol]) {
                         blockreaders[i.subcol]->loadFromFile();
                         rind[i.subcol] = 0;
@@ -980,7 +980,7 @@ void filterRead(ValidSchema *vs, vector<vector<colParser>> vcp, string datafile)
                     rind[i.subcol]++;
                     break;
                 }
-                case AVRO_STRING: {
+                case CORES_STRING: {
                     if (rind[i.subcol] == rcounts[i.subcol]) {
                         blockreaders[i.subcol]->loadFromFile();
                         rind[i.subcol] = 0;
@@ -998,7 +998,7 @@ void filterRead(ValidSchema *vs, vector<vector<colParser>> vcp, string datafile)
                     rind[i.subcol]++;
                     break;
                 }
-                case AVRO_FLOAT: {
+                case CORES_FLOAT: {
                     if (rind[i.subcol] == rcounts[i.subcol]) {
                         blockreaders[i.subcol]->loadFromFile();
                         rind[i.subcol] = 0;
@@ -1011,7 +1011,7 @@ void filterRead(ValidSchema *vs, vector<vector<colParser>> vcp, string datafile)
                     rind[i.subcol]++;
                     break;
                 }
-                case AVRO_BYTES: {
+                case CORES_BYTES: {
                     if (rind[i.subcol] == rcounts[i.subcol]) {
                         blockreaders[i.subcol]->loadFromFile();
                         rind[i.subcol] = 0;
@@ -1024,7 +1024,7 @@ void filterRead(ValidSchema *vs, vector<vector<colParser>> vcp, string datafile)
                     rind[i.subcol]++;
                     break;
                 }
-                case AVRO_ARRAY: {
+                case CORES_ARRAY: {
                     if (rind[i.subcol] == rcounts[i.subcol]) {
                         blockreaders[i.subcol]->loadFromFile();
                         rind[i.subcol] = 0;
@@ -1039,7 +1039,7 @@ void filterRead(ValidSchema *vs, vector<vector<colParser>> vcp, string datafile)
                     for (int j = 0; j < arrsize; ++j) {
                         for (colParser k :vcp[1]) {
                             switch (rs[1].fieldAt(k.subcol).type()) {
-                                case AVRO_LONG: {
+                                case CORES_LONG: {
                                     if (rind1[k.subcol] == rcounts1[k.subcol]) {
                                         blockreaders1[k.subcol]->loadFromFile();
                                         rind1[k.subcol] = 0;
@@ -1053,7 +1053,7 @@ void filterRead(ValidSchema *vs, vector<vector<colParser>> vcp, string datafile)
                                     rind1[k.subcol]++;
                                     break;
                                 }
-                                case AVRO_INT: {
+                                case CORES_INT: {
                                     if (rind1[k.subcol] == rcounts1[k.subcol]) {
                                         blockreaders1[k.subcol]->loadFromFile();
                                         rind1[k.subcol] = 0;
@@ -1067,7 +1067,7 @@ void filterRead(ValidSchema *vs, vector<vector<colParser>> vcp, string datafile)
                                     rind1[k.subcol]++;
                                     break;
                                 }
-                                case AVRO_STRING: {
+                                case CORES_STRING: {
                                     if (rind1[k.subcol] == rcounts1[k.subcol]) {
                                         blockreaders1[k.subcol]->loadFromFile();
                                         rind1[k.subcol] = 0;
@@ -1087,7 +1087,7 @@ void filterRead(ValidSchema *vs, vector<vector<colParser>> vcp, string datafile)
                                     rind[k.subcol]++;
                                     break;
                                 }
-                                case AVRO_FLOAT: {
+                                case CORES_FLOAT: {
                                     if (rind1[k.subcol] == rcounts1[k.subcol]) {
                                         blockreaders1[k.subcol]->loadFromFile();
                                         rind1[k.subcol] = 0;
@@ -1101,7 +1101,7 @@ void filterRead(ValidSchema *vs, vector<vector<colParser>> vcp, string datafile)
                                     rind1[k.subcol]++;
                                     break;
                                 }
-                                case AVRO_BYTES: {
+                                case CORES_BYTES: {
                                     if (rind1[k.subcol] == rcounts1[k.subcol]) {
                                         blockreaders1[k.subcol]->loadFromFile();
                                         rind1[k.subcol] = 0;
@@ -1140,7 +1140,7 @@ void testSchema() {
     GenericRecord r(c.value<GenericRecord>());
     rs.push_back(GenericRecord(r));
     for (int j = 0; j < r.fieldCount(); ++j) {
-        if (r.fieldAt(j).type() == AVRO_ARRAY) {
+        if (r.fieldAt(j).type() == CORES_ARRAY) {
             c = GenericDatum(r.fieldAt(j).value<GenericArray>().schema()->leafAt(0));
             r = c.value<GenericRecord>();
             rs.push_back(GenericRecord(r));

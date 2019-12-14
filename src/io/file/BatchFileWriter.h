@@ -33,7 +33,8 @@ class BlockReader {
     int size;
 
 public:
-    BlockReader() : lengthOffset(0) {}
+    BlockReader() : rowCount(0), lengthOffset(0), size(0) {
+    }
 
     BlockReader(istream is) {
         is.read((char *) &rowCount, sizeof(rowCount));
@@ -46,7 +47,11 @@ public:
     }
 
     int getOffset() {
-        return lengthOffset;
+        return size;
+    }
+
+    int getSize() {
+        return size;
     }
 
     int getRowcount() {
@@ -108,19 +113,30 @@ public:
     }
 
     int findOff(int off, int &roff) {
-        int low = 0, high = blockCount, middle = 0;
+        int low = 1, high = blockCount - 1, middle = (low + high) / 2;
+
+        if (off < blocks[0].getOffset()) {
+            roff = off;
+            return 0;
+        }
         while (low < high) {
             middle = (low + high) / 2;
-            if (off <= blocks[middle].getOffset() && off > blocks[middle - 1].getOffset()) {
+            if (off < blocks[middle].getOffset() && off >= blocks[middle - 1].getOffset()) {
                 roff = off - blocks[middle - 1].getOffset();
                 return middle;
             } else if (off < blocks[middle - 1].getOffset()) {
                 high = middle;
-            } else if (off > blocks[middle].getOffset()) {
+            } else if (off >= blocks[middle].getOffset()) {
                 low = middle + 1;
             }
         }
+        if (off < blocks[middle].getOffset() && off >= blocks[middle - 1].getOffset()) {
+            roff = off - blocks[middle - 1].getOffset();
+            return middle;
+        }
+        return -1;
     }
+
 };
 
 class HeadReader {
@@ -188,6 +204,576 @@ public:
     }
 };
 
+class ColumnWriter {
+public:
+    ColumnWriter() {
+
+    }
+
+    ColumnWriter(int _blocksize, Type t, string path, bool _required) : c_type(t), blocksize(_blocksize),
+                                                                        required(_required) {
+
+        if (blocksize < 1 << 8) offsize = 1;
+        else if (blocksize < 1 << 16) offsize = 2;
+        else if (blocksize < 1 << 24) offsize = 3;
+        else if (blocksize < 1 << 32) offsize = 4;
+        else cout << "blocksize is too large" << endl;
+
+        d_index = 0;
+        h_index = 0;
+        file_offset = 0;
+        block_num = 0;
+        strl = 0;
+
+        h_file = fopen((path + ".head").data(), "wb+");
+        d_file = fopen((path + ".data").data(), "wb+");
+        d_buffers = new char[blocksize];
+        h_info = new int[blocksize];
+        if (!h_file) {
+            cout << ("File opening failed");
+        }
+    }
+
+private:
+    bool required;
+    Type c_type;
+    int blocksize;
+    FILE *d_file;
+    FILE *h_file;
+    char *d_buffers;
+    int *h_info;
+    int d_index;
+    int h_index;
+    vector<int> off_index;
+    vector<unsigned char> valid;
+    int file_offset;
+    int block_num;
+    int strl;
+    int offsize;
+
+public:
+    void write(GenericDatum g) {
+        if (required)
+            fixWrite(g);
+        else {
+            if (g.type() == CORES_NULL)
+                nullWrite();
+            else
+                flxWrite(g);
+        }
+    }
+
+    void fixWrite(GenericDatum data) {
+        switch (c_type) {
+            case CORES_INT: {
+                int tmp = data.value<int>();
+                if (d_index >= blocksize) {
+                    d_index = 0;
+                    fwrite(d_buffers, sizeof(char), blocksize, d_file);
+                    block_num++;
+                    memset(d_buffers, 0, blocksize * sizeof(char));
+                    h_info[h_index++] = blocksize / sizeof(int);
+                    file_offset += blocksize / sizeof(int);
+                    h_info[h_index++] = file_offset;
+                    if (h_index >= blocksize) {
+                        fwrite(h_info, sizeof(int), blocksize, h_file);
+                        memset(h_info, 0, blocksize * sizeof(int));
+                        h_index = 0;
+                    }
+                }
+                *(int *) (&d_buffers[d_index]) = tmp;
+                d_index += sizeof(int);
+                break;
+            }
+            case CORES_LONG: {
+                int64_t tmp = data.value<int64_t>();
+                if (d_index >= blocksize) {
+                    d_index = 0;
+                    fwrite(d_buffers, sizeof(char), blocksize, d_file);
+                    block_num++;
+                    memset(d_buffers, 0, blocksize * sizeof(char));
+                    h_info[h_index++] = blocksize / sizeof(int64_t);
+                    file_offset += blocksize / sizeof(int64_t);
+                    h_info[h_index++] = file_offset;
+                    if (h_index >= blocksize) {
+                        fwrite(h_info, sizeof(int), blocksize, h_file);
+                        memset(h_info, 0, blocksize * sizeof(int));
+                        h_index = 0;
+                    }
+                }
+                *(int64_t *) (&(d_buffers[d_index])) = tmp;
+                d_index += sizeof(int64_t);
+                break;
+            }
+            case CORES_DOUBLE: {
+                double tmp = data.value<double>();
+                if (d_index >= blocksize) {
+                    d_index = 0;
+                    fwrite(d_buffers, sizeof(char), blocksize, d_file);
+                    block_num++;
+                    memset(d_buffers, 0, blocksize * sizeof(char));
+                    h_info[h_index++] = blocksize / sizeof(double);
+                    file_offset += blocksize / sizeof(double);
+                    h_info[h_index++] = file_offset;
+                    if (h_index >= blocksize) {
+                        fwrite(h_info, sizeof(int), blocksize, h_file);
+                        memset(h_info, 0, blocksize * sizeof(int));
+                        h_index = 0;
+                    }
+                }
+                *(double *) (&d_buffers[d_index]) = tmp;
+                d_index += sizeof(double);
+                break;
+            }
+            case CORES_FLOAT: {
+                float tmp = data.value<float>();
+                if (d_index >= blocksize) {
+                    d_index = 0;
+                    fwrite(d_buffers, sizeof(char), blocksize, d_file);
+                    block_num++;
+                    memset(d_buffers, 0, blocksize * sizeof(char));
+                    h_info[h_index++] = blocksize / sizeof(float);
+                    file_offset += blocksize / sizeof(float);
+                    h_info[h_index++] = file_offset;
+                    if (h_index >= blocksize) {
+                        fwrite(h_info, sizeof(int), blocksize, h_file);
+                        memset(h_info, 0, blocksize * sizeof(int));
+                        h_index = 0;
+                    }
+                }
+                *(float *) (&d_buffers[d_index]) = tmp;
+                d_index += sizeof(float);
+                break;
+            }
+            case CORES_BYTES: {
+                char tmp = data.value<char>();
+                if (d_index >= blocksize) {
+                    d_index = 0;
+                    fwrite(d_buffers, sizeof(char), blocksize, d_file);
+                    block_num++;
+                    memset(d_buffers, 0, blocksize * sizeof(char));
+                    h_info[h_index++] = blocksize / sizeof(char);
+                    file_offset += blocksize / sizeof(char);
+                    h_info[h_index++] = file_offset;
+                    if (h_index >= blocksize) {
+                        fwrite(h_info, sizeof(char), blocksize, h_file);
+                        memset(h_info, 0, blocksize * sizeof(char));
+                        h_index = 0;
+                    }
+                }
+                *(char *) (&d_buffers[d_index]) = tmp;
+                d_index += sizeof(char);
+                break;
+            }
+            case CORES_STRING: {
+                string tmp = data.value<string>();
+                if ((d_index + tmp.length() + 1 + offsize * strl) > blocksize) {
+                    int tmpoff = offsize * strl;
+                    for (int j :off_index) {
+                        int tmp = j + tmpoff;
+                        fwrite((char *) &tmp, offsize, sizeof(char), d_file);
+                    }
+                    fwrite(d_buffers, sizeof(char), blocksize - tmpoff, d_file);
+                    block_num++;
+                    memset(d_buffers, 0, blocksize * sizeof(char));
+                    h_info[h_index++] = strl;
+                    file_offset += strl;
+                    h_info[h_index++] = file_offset;
+                    d_index = 0;
+                    strl = 0;
+                    off_index.clear();
+                    if (h_index >= blocksize) {
+                        fwrite(h_info, sizeof(int), blocksize, h_file);
+                        memset(h_info, 0, blocksize * sizeof(int));
+                        h_index = 0;
+                    }
+                }
+                off_index.push_back(d_index);
+                std::strcpy(&d_buffers[d_index], tmp.c_str());
+                d_index += tmp.length() + 1;
+                strl++;
+                break;
+            }
+            case CORES_ARRAY: {
+                GenericArray ga = data.value<GenericArray>();
+                int tmp = ga.value().size();
+                if (d_index >= blocksize) {
+                    d_index = 0;
+                    fwrite(d_buffers, sizeof(char), blocksize, d_file);
+                    block_num++;
+                    memset(d_buffers, 0, blocksize * sizeof(char));
+                    h_info[h_index++] = blocksize / sizeof(int);
+                    file_offset += blocksize / sizeof(int);
+                    h_info[h_index++] = file_offset;
+                    if (h_index >= blocksize) {
+                        fwrite(h_info, sizeof(int), blocksize, h_file);
+                        memset(h_info, 0, blocksize * sizeof(int));
+                        h_index = 0;
+                    }
+                }
+                *(int *) (&d_buffers[d_index]) = tmp;
+                d_index += sizeof(int);
+                break;
+            }
+
+        }
+    }
+
+    void nullWrite() {
+        if (c_type == CORES_STRING) {
+            int zero = 0;
+            if (strl % 8 == 0) zero = 1;
+            if ((d_index + 1 + offsize * strl + valid.size()) > blocksize) {
+                fwrite((char *) &valid[0], valid.size(), sizeof(char), d_file);
+                int tmpoff = offsize * strl;
+                for (int j :off_index) {
+                    int tmp = j + tmpoff;
+                    fwrite((char *) &tmp, offsize, sizeof(char), d_file);
+                }
+                fwrite(d_buffers, sizeof(char),
+                       blocksize - valid.size() - offsize * off_index.size(), d_file);
+                valid.clear();
+                block_num++;
+                memset(d_buffers, 0, blocksize * sizeof(char));
+                h_info[h_index++] = strl;
+                file_offset += strl;
+                h_info[h_index++] = file_offset;
+                d_index = 0;
+                strl = 0;
+                off_index.clear();
+                if (h_index >= blocksize) {
+                    fwrite(h_info, sizeof(int), blocksize, h_file);
+                    memset(h_info, 0, blocksize * sizeof(int));
+                    h_index = 0;
+                }
+            }
+            if (zero) {
+                valid.push_back(0x0);
+            }
+            strl++;
+        } else {
+            int zero = 0;
+            if (strl % 8 == 0) zero = 1;
+            if (d_index + zero + valid.size() >= blocksize) {
+                fwrite((char *) &valid[0], valid.size(), sizeof(char), d_file);
+                fwrite(d_buffers, sizeof(char), blocksize - valid.size(), d_file);
+                valid.clear();
+                d_index = 0;
+                block_num++;
+                memset(d_buffers, 0, blocksize * sizeof(char));
+                h_info[h_index++] = strl;
+                file_offset += strl;
+                h_info[h_index++] = file_offset;
+                strl = 0;
+                if (h_index >= blocksize) {
+                    fwrite(h_info, sizeof(int), blocksize, h_file);
+                    memset(h_info, 0, blocksize * sizeof(int));
+                    h_index = 0;
+                }
+            }
+            if (zero) {
+                valid.push_back(0x0);
+            }
+            strl++;
+        }
+    }
+
+    void flxWrite(GenericDatum data) {
+        switch (c_type) {
+            case CORES_INT: {
+                int tmp = data.value<int>();
+                int zero = 0;
+                if (strl % 8 == 0) zero = 1;
+                if (d_index + zero + valid.size() >= blocksize) {
+                    fwrite((char *) &valid[0], valid.size(), sizeof(char), d_file);
+                    fwrite(d_buffers, sizeof(char), blocksize - valid.size(), d_file);
+                    valid.clear();
+                    d_index = 0;
+                    block_num++;
+                    memset(d_buffers, 0, blocksize * sizeof(char));
+                    h_info[h_index++] = strl;
+                    file_offset += strl;
+                    h_info[h_index++] = file_offset;
+                    strl = 0;
+                    if (h_index >= blocksize) {
+                        fwrite(h_info, sizeof(int), blocksize, h_file);
+                        memset(h_info, 0, blocksize * sizeof(int));
+                        h_index = 0;
+                    }
+                }
+                if (strl % 8 == 0) zero = 1;
+                if (zero) {
+                    valid.push_back(0x0);
+                }
+                valid.back() |= 1L << (strl % 8);
+                *(int *) (&d_buffers[d_index]) = tmp;
+                d_index += sizeof(int);
+                strl++;
+                break;
+            }
+            case CORES_LONG: {
+                int64_t tmp = data.value<int64_t>();
+                int zero = 0;
+                if (strl % 8 == 0) zero = 1;
+                if (d_index + zero + valid.size() >= blocksize) {
+                    fwrite((char *) &valid[0], valid.size(), sizeof(char), d_file);
+                    fwrite(d_buffers, sizeof(char), blocksize - valid.size(), d_file);
+                    valid.clear();
+                    d_index = 0;
+                    block_num++;
+                    memset(d_buffers, 0, blocksize * sizeof(char));
+                    h_info[h_index++] = strl;
+                    file_offset += strl;
+                    h_info[h_index++] = file_offset;
+                    strl = 0;
+
+                    if (h_index >= blocksize) {
+                        fwrite(h_info, sizeof(int), blocksize, h_file);
+                        memset(h_info, 0, blocksize * sizeof(int));
+                        h_index = 0;
+                    }
+                }
+                if (strl % 8 == 0) zero = 1;
+                if (zero) {
+                    valid.push_back(0x0);
+                }
+                valid.back() |= 1L << (strl % 8);
+
+                *(int64_t *) (&(d_buffers[d_index])) = tmp;
+                d_index += sizeof(int64_t);
+                strl++;
+                break;
+            }
+            case CORES_DOUBLE: {
+                double tmp = data.value<double>();
+                int zero = 0;
+                if (strl % 8 == 0) zero = 1;
+                if (d_index + zero + valid.size() >= blocksize) {
+                    fwrite((char *) &valid[0], valid.size(), sizeof(char), d_file);
+                    fwrite(d_buffers, sizeof(char), blocksize - valid.size(), d_file);
+                    valid.clear();
+                    d_index = 0;
+                    block_num++;
+                    memset(d_buffers, 0, blocksize * sizeof(char));
+                    h_info[h_index++] = strl;
+                    file_offset += strl;
+                    h_info[h_index++] = file_offset;
+                    strl = 0;
+                    if (h_index >= blocksize) {
+                        fwrite(h_info, sizeof(int), blocksize, h_file);
+                        memset(h_info, 0, blocksize * sizeof(int));
+                        h_index = 0;
+                    }
+                }
+                if (strl % 8 == 0) zero = 1;
+                if (zero) {
+                    valid.push_back(0x0);
+                }
+                valid.back() |= 1L << (strl % 8);
+
+                *(double *) (&d_buffers[d_index]) = tmp;
+                d_index += sizeof(double);
+                strl++;
+                break;
+            }
+            case CORES_FLOAT: {
+                float tmp = data.value<float>();
+                int zero = 0;
+                if (strl % 8 == 0) zero = 1;
+                if (d_index + zero + valid.size() >= blocksize) {
+                    fwrite((char *) &valid[0], valid.size(), sizeof(char), d_file);
+                    fwrite(d_buffers, sizeof(char), blocksize - valid.size(), d_file);
+                    valid.clear();
+                    d_index = 0;
+                    block_num++;
+                    memset(d_buffers, 0, blocksize * sizeof(char));
+                    h_info[h_index++] = strl;
+                    file_offset += strl;
+                    h_info[h_index++] = file_offset;
+                    strl = 0;
+                    if (h_index >= blocksize) {
+                        fwrite(h_info, sizeof(int), blocksize, h_file);
+                        memset(h_info, 0, blocksize * sizeof(int));
+                        h_index = 0;
+                    }
+                }
+                if (strl % 8 == 0) zero = 1;
+                if (zero) {
+                    valid.push_back(0x0);
+                }
+                valid.back() |= 1L << (strl % 8);
+
+                *(float *) (&d_buffers[d_index]) = tmp;
+                d_index += sizeof(float);
+                strl++;
+                break;
+            }
+            case CORES_BYTES: {
+                char tmp = data.value<char>();
+                int zero = 0;
+                if (strl % 8 == 0) zero = 1;
+                if (d_index + zero + valid.size() >= blocksize) {
+                    fwrite((char *) &valid[0], valid.size(), sizeof(char), d_file);
+                    fwrite(d_buffers, sizeof(char), blocksize - valid.size(), d_file);
+                    valid.clear();
+                    d_index = 0;
+                    block_num++;
+                    memset(d_buffers, 0, blocksize * sizeof(char));
+                    h_info[h_index++] = strl;
+                    file_offset += strl;
+                    h_info[h_index++] = file_offset;
+                    strl = 0;
+                    if (h_index >= blocksize) {
+                        fwrite(h_info, sizeof(int), blocksize, h_file);
+                        memset(h_info, 0, blocksize * sizeof(int));
+                        h_index = 0;
+                    }
+                }
+                if (strl % 8 == 0) zero = 1;
+                if (zero) {
+                    valid.push_back(0x0);
+                }
+                valid.back() |= 1L << (strl % 8);
+
+                *(char *) (&d_buffers[d_index]) = tmp;
+                d_index += sizeof(char);
+                strl++;
+                break;
+            }
+            case CORES_STRING: {
+                string tmp = data.value<string>();
+                int zero = 0;
+                if (strl % 8 == 0) zero = 1;
+                if ((d_index + tmp.length() + 1 + offsize * strl + valid.size()) > blocksize) {
+                    fwrite((char *) &valid[0], valid.size(), sizeof(char), d_file);
+                    int tmpoff = offsize * strl;
+                    for (int j :off_index) {
+                        int tmp = j + tmpoff;
+                        fwrite((char *) &tmp, offsize, sizeof(char), d_file);
+                    }
+                    fwrite(d_buffers, sizeof(char),
+                           blocksize - valid.size() - offsize * off_index.size(), d_file);
+                    valid.clear();
+                    block_num++;
+                    memset(d_buffers, 0, blocksize * sizeof(char));
+                    h_info[h_index++] = strl;
+                    file_offset += strl;
+                    h_info[h_index++] = file_offset;
+                    d_index = 0;
+                    strl = 0;
+                    off_index.clear();
+                    if (h_index >= blocksize) {
+                        fwrite(h_info, sizeof(int), blocksize, h_file);
+                        memset(h_info, 0, blocksize * sizeof(int));
+                        h_index = 0;
+                    }
+                }
+                if (strl % 8 == 0) zero = 1;
+                if (zero) {
+                    valid.push_back(0x0);
+                }
+                valid.back() |= 1L << (strl % 8);
+
+                const char *tmpc = tmp.c_str();
+                int tmpi = tmp.length();
+                off_index.push_back(d_index);
+                std::strcpy(&d_buffers[d_index], tmp.c_str());
+                d_index += tmp.length() + 1;
+                strl++;
+                break;
+            }
+            case CORES_ARRAY: {
+                int tmp = data.value<GenericArray>().value().size();
+                int zero = 0;
+                if (strl % 8 == 0) zero = 1;
+                if (d_index + zero + valid.size() >= blocksize) {
+                    fwrite((char *) &valid[0], valid.size(), sizeof(char), d_file);
+                    fwrite(d_buffers, sizeof(char), blocksize - valid.size(), d_file);
+                    valid.clear();
+                    d_index = 0;
+                    block_num++;
+                    memset(d_buffers, 0, blocksize * sizeof(char));
+                    h_info[h_index++] = strl;
+                    file_offset += strl;
+                    h_info[h_index++] = file_offset;
+                    strl = 0;
+                    if (h_index >= blocksize) {
+                        fwrite(h_info, sizeof(int), blocksize, h_file);
+                        memset(h_info, 0, blocksize * sizeof(int));
+                        h_index = 0;
+                    }
+                }
+                if (strl % 8 == 0) zero = 1;
+                if (zero) {
+                    valid.push_back(0x0);
+                }
+                valid.back() |= 1L << (strl % 8);
+
+                *(int *) (&d_buffers[d_index]) = tmp;
+                d_index += sizeof(int);
+                strl++;
+                break;
+            }
+        }
+    }
+
+    void writeRest() {
+        if (!required) {
+            if (d_index != 0) {
+                if (c_type == CORES_STRING) {
+                    fwrite((char *) &valid[0], valid.size(), sizeof(char), d_file);
+                    int tmpoff = offsize * strl;
+                    for (int j :off_index) {
+                        int tmp = j + tmpoff;
+                        fwrite((char *) &tmp, offsize, sizeof(char), d_file);
+                    }
+                    fwrite(d_buffers, sizeof(char),
+                           blocksize - valid.size() - offsize * off_index.size(), d_file);
+                } else {
+                    fwrite((char *) &valid[0], valid.size(), sizeof(char), d_file);
+                    fwrite(d_buffers, sizeof(char), blocksize - valid.size(), d_file);
+                }
+                block_num++;
+                h_info[h_index++] = strl;
+                file_offset += strl;
+                h_info[h_index++] = file_offset;
+            }
+            if (h_index = 0) {
+                fwrite(h_info, sizeof(int), blocksize, h_file);
+            }
+        } else {
+            if (c_type == CORES_STRING) {
+                int tmpoff = offsize * strl;
+                for (int j :off_index) {
+                    int tmp = j + tmpoff;
+                    fwrite((char *) &tmp, offsize, sizeof(char), d_file);
+                }
+                fwrite(d_buffers, sizeof(char),
+                       blocksize - offsize * off_index.size(), d_file);
+            } else {
+                fwrite(d_buffers, sizeof(char), blocksize - valid.size(), d_file);
+            }
+            block_num++;
+            h_info[h_index++] = strl;
+            file_offset += strl;
+            h_info[h_index++] = file_offset;
+        }
+        if (h_index != 0) {
+            fwrite(h_info, sizeof(int), blocksize, h_file);
+        }
+
+
+        fflush(d_file);
+        fflush(h_file);
+        fclose(d_file);
+        fclose(h_file);
+    }
+
+
+    int getBlocknum() {
+        return block_num;
+    }
+};
 
 class BatchFileWriter {
     BatchFileWriter() {
@@ -196,16 +782,33 @@ class BatchFileWriter {
 
 public:
 
+    BatchFileWriter(GenericDatum record, string path, int blocksize, bool flexible) {
+        this->record = new GenericRecord(record.value<GenericRecord>());
+        this->path = path;
+        this->blocksize = blocksize;
+        column_num = this->record->fieldCount();
+
+        head_files = (FILE **) (malloc(column_num * sizeof(FILE *)));
+        data_files = (FILE **) (malloc(column_num * sizeof(FILE *)));
+
+        for (int j = 0; j < column_num; ++j) {
+            cws.push_back(
+                    ColumnWriter(blocksize, this->record->schema()->leafAt(j)->type(), path + "/file" + to_string(j),
+                                 this->record->schema()->isRequired(j)));
+        }
+    }
+
     BatchFileWriter(GenericDatum record, string path, int blocksize = 1024) {
         this->record = new GenericRecord(record.value<GenericRecord>());
         this->path = path;
         this->blocksize = blocksize;
+        column_num = this->record->fieldCount();
+
         if (blocksize < 1 << 8) offsize = 1;
         else if (blocksize < 1 << 16) offsize = 2;
         else if (blocksize < 1 << 24) offsize = 3;
         else if (blocksize < 1 << 32) offsize = 4;
         else cout << "blocksize is too large" << endl;
-        column_num = this->record->fieldCount();
         head_files = (FILE **) (malloc(column_num * sizeof(FILE *)));
         data_files = (FILE **) (malloc(column_num * sizeof(FILE *)));
         data_buffers = (char **) (malloc(column_num * sizeof(char *)));
@@ -247,6 +850,7 @@ private:
     int *block_num;
     int *strl;
 
+    vector<ColumnWriter> cws;
 
     FILE *outfile;
 
@@ -284,32 +888,32 @@ public:
         SplitString(line, v, "|");
         for (int i = 0; i < column_num; ++i) {
             switch (record->schema()->leafAt(i)->type()) {
-                case AVRO_INT: {
+                case CORES_INT: {
                     int tmp = stoi(v[i]);
                     record->fieldAt(i) = tmp;
                     break;
                 }
-                case AVRO_FLOAT: {
+                case CORES_FLOAT: {
                     float tmp = stof(v[i]);
                     record->fieldAt(i) = tmp;
                     break;
                 }
-                case AVRO_LONG: {
+                case CORES_LONG: {
                     int64_t tmp = stol(v[i]);
                     record->fieldAt(i) = tmp;
                     break;
                 }
-                case AVRO_DOUBLE: {
+                case CORES_DOUBLE: {
                     double tmp = stod(v[i]);
                     record->fieldAt(i) = tmp;
                     break;
                 }
-                case AVRO_BYTES: {
+                case CORES_BYTES: {
                     char tmp = ((char *) v[i].c_str())[0];
                     record->fieldAt(i) = tmp;
                     break;
                 }
-                case AVRO_STRING: {
+                case CORES_STRING: {
                     record->fieldAt(i) = v[i];
                     break;
                 }
@@ -317,10 +921,18 @@ public:
         }
     }
 
+    //flexible write
+    void write(const GenericRecord &r) {
+        for (int i = 0; i < column_num; ++i) {
+            cws[i].write(r.fieldAt(i));
+        }
+    }
+
+    //required write
     void writeRecord() {
         for (int i = 0; i < column_num; ++i) {
             switch (record->schema()->leafAt(i)->type()) {
-                case AVRO_INT: {
+                case CORES_INT: {
                     int tmp = record->fieldAt(i).value<int>();
                     if (data_index[i] >= blocksize) {
                         data_index[i] = 0;
@@ -340,7 +952,7 @@ public:
                     data_index[i] += sizeof(int);
                     break;
                 }
-                case AVRO_LONG: {
+                case CORES_LONG: {
                     int64_t tmp = record->fieldAt(i).value<int64_t>();
                     if (data_index[i] >= blocksize) {
                         data_index[i] = 0;
@@ -360,7 +972,7 @@ public:
                     data_index[i] += sizeof(int64_t);
                     break;
                 }
-                case AVRO_DOUBLE: {
+                case CORES_DOUBLE: {
                     double tmp = record->fieldAt(i).value<double>();
                     if (data_index[i] >= blocksize) {
                         data_index[i] = 0;
@@ -380,7 +992,7 @@ public:
                     data_index[i] += sizeof(double);
                     break;
                 }
-                case AVRO_FLOAT: {
+                case CORES_FLOAT: {
                     float tmp = record->fieldAt(i).value<float>();
                     if (data_index[i] >= blocksize) {
                         data_index[i] = 0;
@@ -400,7 +1012,7 @@ public:
                     data_index[i] += sizeof(float);
                     break;
                 }
-                case AVRO_BYTES: {
+                case CORES_BYTES: {
                     char tmp = record->fieldAt(i).value<char>();
                     if (data_index[i] >= blocksize) {
                         data_index[i] = 0;
@@ -420,7 +1032,7 @@ public:
                     data_index[i] += sizeof(char);
                     break;
                 }
-                case AVRO_STRING: {
+                case CORES_STRING: {
                     string tmp = record->fieldAt(i).value<string>();
                     if ((data_index[i] + tmp.length() + 1 + offsize * strl[i]) > blocksize) {
                         int tmpoff = offsize * strl[i];
@@ -449,7 +1061,7 @@ public:
                     strl[i]++;
                     break;
                 }
-                case AVRO_ARRAY: {
+                case CORES_ARRAY: {
                     int tmp = record->fieldAt(i).value<GenericArray>().value().size();
                     if (data_index[i] >= blocksize) {
                         data_index[i] = 0;
@@ -474,16 +1086,17 @@ public:
 
     }
 
+    //optional write
     void writeRecord(const GenericRecord &r) {
         for (int i = 0; i < column_num; ++i) {
             switch (r.schema()->leafAt(i)->type()) {
-                case AVRO_INT: {
+                case CORES_INT: {
                     int tmp = r.fieldAt(i).value<int>();
                     int zero = 0;
                     if (strl[i] % 8 == 0) zero = 1;
                     if (data_index[i] + zero + valid[i].size() >= blocksize) {
                         fwrite((char *) &valid[i][0], valid[i].size(), sizeof(char), data_files[i]);
-                        fwrite(data_buffers[i], sizeof(char), blocksize-valid[i].size(), data_files[i]);
+                        fwrite(data_buffers[i], sizeof(char), blocksize - valid[i].size(), data_files[i]);
                         valid[i].clear();
                         data_index[i] = 0;
                         block_num[i]++;
@@ -510,13 +1123,13 @@ public:
                     strl[i]++;
                     break;
                 }
-                case AVRO_LONG: {
+                case CORES_LONG: {
                     int64_t tmp = r.fieldAt(i).value<int64_t>();
                     int zero = 0;
                     if (strl[i] % 8 == 0) zero = 1;
                     if (data_index[i] + zero + valid[i].size() >= blocksize) {
                         fwrite((char *) &valid[i][0], valid[i].size(), sizeof(char), data_files[i]);
-                        fwrite(data_buffers[i], sizeof(char), blocksize-valid[i].size(), data_files[i]);
+                        fwrite(data_buffers[i], sizeof(char), blocksize - valid[i].size(), data_files[i]);
                         valid[i].clear();
                         data_index[i] = 0;
                         block_num[i]++;
@@ -544,13 +1157,13 @@ public:
                     strl[i]++;
                     break;
                 }
-                case AVRO_DOUBLE: {
+                case CORES_DOUBLE: {
                     double tmp = r.fieldAt(i).value<double>();
                     int zero = 0;
                     if (strl[i] % 8 == 0) zero = 1;
                     if (data_index[i] + zero + valid[i].size() >= blocksize) {
                         fwrite((char *) &valid[i][0], valid[i].size(), sizeof(char), data_files[i]);
-                        fwrite(data_buffers[i], sizeof(char), blocksize-valid[i].size(), data_files[i]);
+                        fwrite(data_buffers[i], sizeof(char), blocksize - valid[i].size(), data_files[i]);
                         valid[i].clear();
                         data_index[i] = 0;
                         block_num[i]++;
@@ -577,13 +1190,13 @@ public:
                     strl[i]++;
                     break;
                 }
-                case AVRO_FLOAT: {
+                case CORES_FLOAT: {
                     float tmp = r.fieldAt(i).value<float>();
                     int zero = 0;
                     if (strl[i] % 8 == 0) zero = 1;
                     if (data_index[i] + zero + valid[i].size() >= blocksize) {
                         fwrite((char *) &valid[i][0], valid[i].size(), sizeof(char), data_files[i]);
-                        fwrite(data_buffers[i], sizeof(char), blocksize-valid[i].size(), data_files[i]);
+                        fwrite(data_buffers[i], sizeof(char), blocksize - valid[i].size(), data_files[i]);
                         valid[i].clear();
                         data_index[i] = 0;
                         block_num[i]++;
@@ -610,13 +1223,13 @@ public:
                     strl[i]++;
                     break;
                 }
-                case AVRO_BYTES: {
+                case CORES_BYTES: {
                     char tmp = r.fieldAt(i).value<char>();
                     int zero = 0;
                     if (strl[i] % 8 == 0) zero = 1;
                     if (data_index[i] + zero + valid[i].size() >= blocksize) {
                         fwrite((char *) &valid[i][0], valid[i].size(), sizeof(char), data_files[i]);
-                        fwrite(data_buffers[i], sizeof(char), blocksize-valid[i].size(), data_files[i]);
+                        fwrite(data_buffers[i], sizeof(char), blocksize - valid[i].size(), data_files[i]);
                         valid[i].clear();
                         data_index[i] = 0;
                         block_num[i]++;
@@ -643,18 +1256,19 @@ public:
                     strl[i]++;
                     break;
                 }
-                case AVRO_STRING: {
+                case CORES_STRING: {
                     string tmp = r.fieldAt(i).value<string>();
                     int zero = 0;
                     if (strl[i] % 8 == 0) zero = 1;
                     if ((data_index[i] + tmp.length() + 1 + offsize * strl[i] + valid[i].size()) > blocksize) {
                         fwrite((char *) &valid[i][0], valid[i].size(), sizeof(char), data_files[i]);
-                        int tmpoff = offsize * strl[i] ;
+                        int tmpoff = offsize * strl[i];
                         for (int j :off_index[i]) {
                             int tmp = j + tmpoff;
                             fwrite((char *) &tmp, offsize, sizeof(char), data_files[i]);
                         }
-                        fwrite(data_buffers[i], sizeof(char), blocksize-valid[i].size()-offsize * off_index[i].size(), data_files[i]);
+                        fwrite(data_buffers[i], sizeof(char),
+                               blocksize - valid[i].size() - offsize * off_index[i].size(), data_files[i]);
                         valid[i].clear();
                         block_num[i]++;
                         memset(data_buffers[i], 0, blocksize * sizeof(char));
@@ -677,15 +1291,15 @@ public:
                     if (r.schema()->getValid(i)) {
                         valid[i].back() |= 1L << (strl[i] % 8);
                     }
-                    const char* tmpc=tmp.c_str();
-                    int tmpi=tmp.length();
+                    const char *tmpc = tmp.c_str();
+                    int tmpi = tmp.length();
                     off_index[i].push_back(data_index[i]);
                     std::strcpy(&data_buffers[i][data_index[i]], tmp.c_str());
                     data_index[i] += tmp.length() + 1;
                     strl[i]++;
                     break;
                 }
-                case AVRO_ARRAY: {
+                case CORES_ARRAY: {
                     int tmp = r.fieldAt(i).value<GenericArray>().value().size();
                     int zero = 0;
                     if (strl[i] % 8 == 0) zero = 1;
@@ -720,21 +1334,27 @@ public:
                 }
             }
         }
+    }
 
+    void writeRest(bool flexible) {
+        for (int i = 0; i < column_num; ++i) {
+            cws[i].writeRest();
+        }
     }
 
     void writeRest() {
         for (int k = 0; k < column_num; ++k) {
             if (data_index[k] != 0) {
-                if(record->fieldAt(k).type()==AVRO_STRING){
+                if (record->fieldAt(k).type() == CORES_STRING) {
                     fwrite((char *) &valid[k][0], valid[k].size(), sizeof(char), data_files[k]);
-                    int tmpoff = offsize * strl[k] ;
+                    int tmpoff = offsize * strl[k];
                     for (int j :off_index[k]) {
                         int tmp = j + tmpoff;
                         fwrite((char *) &tmp, offsize, sizeof(char), data_files[k]);
                     }
-                    fwrite(data_buffers[k], sizeof(char), blocksize-valid[k].size()-offsize * off_index[k].size(), data_files[k]);
-                }else{
+                    fwrite(data_buffers[k], sizeof(char), blocksize - valid[k].size() - offsize * off_index[k].size(),
+                           data_files[k]);
+                } else {
                     fwrite((char *) &valid[k][0], valid[k].size(), sizeof(char), data_files[k]);
                     fwrite(data_buffers[k], sizeof(char), blocksize - valid[k].size(), data_files[k]);
                 }
@@ -756,6 +1376,59 @@ public:
         }
     }
 
+    void mergeFiles(bool fle) {
+        for (int i = 0; i < column_num; ++i) {
+            head_files[i] = fopen((path + "/file" + to_string(i) + ".head").data(), "rb");
+            data_files[i] = fopen((path + "/file" + to_string(i) + ".data").data(), "rb");
+        }
+        fstream fo;
+        fo.open(path + "/fileout.dat", ios_base::out | ios_base::binary);
+        long *foffsets = new long[column_num];
+        int rowcount = 0;
+        fo.write((char *) &blocksize, sizeof(blocksize));
+        fo.write((char *) &rowcount, sizeof(rowcount));
+        fo.write((char *) &column_num, sizeof(column_num));
+        //fo << schema ;
+        //metadata
+        long *result = new long[column_num];
+        std::vector<int> bc(2);
+        vector<int> bnums;
+        for (int k = 0; k < column_num; ++k) {
+            bnums.push_back(cws[k].getBlocknum());
+        }
+        for (int j = 0; j < column_num; ++j) {
+            fo.write((char *) &bnums[j], sizeof(int));
+            foffsets[j] = fo.tellg();
+            fo.write((char *) &foffsets[j], sizeof(long));
+            for (int i = 0; i < cws[j].getBlocknum(); ++i) {
+                fread(&bc[0], sizeof bc[0], bc.size(), head_files[j]);
+                fo.write((char *) &bc[0], sizeof bc[0]);
+                fo.write((char *) &bc[1], sizeof bc[1]);
+            }
+        }
+        result[0] = fo.tellg();
+        fo.close();
+        FILE *fp = fopen((path + "/fileout.dat").data(), "ab+");
+        char *buffer = new char[blocksize];
+        long *tmpl = (long *) buffer;
+        for (int j = 0; j < column_num; ++j) {
+            if (j != 0)result[j] = ftell(fp);
+            for (int i = 0; i < cws[j].getBlocknum(); ++i) {
+                fread(buffer, sizeof(char), blocksize, data_files[j]);
+                fwrite(buffer, sizeof(char), blocksize, fp);
+            }
+        }
+        fflush(fp);
+        fclose(fp);
+        fp = fopen((path + "/fileout.dat").data(), "rb+");
+        for (int m = 0; m < column_num; ++m) {
+            fseek(fp, foffsets[m], SEEK_SET);
+            fwrite((char *) &result[m], sizeof(result[m]), 1, fp);
+        }
+        fflush(fp);
+        fclose(fp);
+    }
+
     void mergeFiles() {
         for (int i = 0; i < column_num; ++i) {
             head_files[i] = fopen((path + "/file" + to_string(i) + ".head").data(), "rb");
@@ -764,7 +1437,7 @@ public:
         fstream fo;
         fo.open(path + "/fileout.dat", ios_base::out | ios_base::binary);
         long *foffsets = new long[column_num];
-        int rowcount = file_offset[0];
+        int rowcount = 0;
         fo.write((char *) &blocksize, sizeof(blocksize));
         fo.write((char *) &rowcount, sizeof(rowcount));
         fo.write((char *) &column_num, sizeof(column_num));
@@ -806,10 +1479,11 @@ public:
     }
 };
 
+
 class fileReader {
 private:
     GenericRecord *r;
-    vector<FILE *>fpp;
+    vector<FILE *> fpp;
     shared_ptr<HeadReader> headreader;
     vector<int> rind;
     vector<int> bind;
@@ -822,15 +1496,16 @@ private:
     int arsize;
     vector<vector<int> *> offarrs;
     int offsize;
+    vector<int> g_offset;
 
 public:
     fileReader(GenericDatum c, shared_ptr<HeadReader> _headreader, int _begin, int _end, char *resultfile) : begin(
-            _begin), end(_end+1) {
+            _begin), end(_end + 1) {
         headreader = _headreader;
         ind = 0;
         r = new GenericRecord(c.value<GenericRecord>());
         ifstream file_in;
-        int colnum = end - begin ;
+        int colnum = end - begin;
         fpp = vector<FILE *>(colnum);
         rind = vector<int>(colnum);
         bind = vector<int>(colnum);
@@ -839,11 +1514,14 @@ public:
         offarrs = vector<vector<int> *>(colnum);
         blocksize = headreader->getBlockSize();
         for (int i = begin; i < end; ++i) {
-            fpp[i-begin] = fopen(resultfile, "rb");
-            fseek(fpp[i-begin], headreader->getColumns()[i].getOffset(), SEEK_SET);
-            rcounts[i-begin] = headreader->getColumns()[i].getBlock(bind[i-begin]).getRowcount();
-            blockreaders[i-begin] = new Block(fpp[i-begin], 0L, 0, blocksize);
-            blockreaders[i-begin]->loadFromFile(rcounts[i-begin]);
+            fpp[i - begin] = fopen(resultfile, "rb");
+            fseek(fpp[i - begin], headreader->getColumns()[i].getOffset(), SEEK_SET);
+            rcounts[i - begin] = headreader->getColumns()[i].getBlock(bind[i - begin]).getRowcount();
+            blockreaders[i - begin] = new Block(fpp[i - begin], 0L, 0, blocksize);
+            if (r->schema()->isRequired(i))
+                blockreaders[i - begin]->loadFromFile();
+            else
+                blockreaders[i - begin]->loadFromFile(rcounts[i - begin]);
         }
         if (blocksize < 1 << 8) offsize = 1;
         else if (blocksize < 1 << 16) offsize = 2;
@@ -851,6 +1529,36 @@ public:
         else if (blocksize < 1 << 32) offsize = 4;
     }
 
+
+    fileReader(GenericDatum c, shared_ptr<HeadReader> _headreader, int _begin, int _end, char *resultfile, bool flag)
+            : begin(
+            _begin), end(_end + 1) {
+        headreader = _headreader;
+        ind = 0;
+        r = new GenericRecord(c.value<GenericRecord>());
+        ifstream file_in;
+        int colnum = end - begin;
+        fpp = vector<FILE *>(colnum);
+        rind = vector<int>(colnum);
+        bind = vector<int>(colnum);
+        rcounts = vector<int>(colnum);
+        blockreaders = vector<Block *>(colnum);
+        offarrs = vector<vector<int> *>(colnum);
+        blocksize = headreader->getBlockSize();
+        for (int i = begin; i < end; ++i) {
+            fpp[i - begin] = fopen(resultfile, "rb");
+            fseek(fpp[i - begin], headreader->getColumns()[i].getOffset(), SEEK_SET);
+            rcounts[i - begin] = headreader->getColumns()[i].getBlock(bind[i - begin]).getRowcount();
+            blockreaders[i - begin] = new Block(fpp[i - begin], 0L, 0, blocksize);
+            blockreaders[i - begin]->loadFromFile(rcounts[i - begin]);
+        }
+        if (blocksize < 1 << 8) offsize = 1;
+        else if (blocksize < 1 << 16) offsize = 2;
+        else if (blocksize < 1 << 24) offsize = 3;
+        else if (blocksize < 1 << 32) offsize = 4;
+    }
+
+/*
 //    fileReader(GenericDatum c, int _blocksize) {
 //        ind = 0;
 //        r = new GenericRecord ();
@@ -878,104 +1586,80 @@ public:
 //            blockreaders[i]->loadFromFile();
 //        }
 //    }
+*/
 
     void skipread(int off) {
-        if (headreader->getColumn(begin).getOffset() < off) {
-            cout << "out of index" << endl;
-            return;
-        }
-        r->schema()->invalidate();
-        for (int i = begin; i < end; ++i) {
+        for (int i = 0; i < end - begin; ++i) {
+            int r_ind, b_ind, vr_ind;
+            int tmp = headreader->getColumn(i + begin).getBlock(1).getSize();
+            if (off < headreader->getColumn(i + begin).getBlock(bind[i]).getOffset()) {
+                if (bind[i] == 0) {
+                    r_ind = off;
+                    rind[i] = r_ind;
+                } else {
+                    r_ind = off - headreader->getColumn(i + begin).getBlock(bind[i] - 1).getOffset();
+                    rind[i] = r_ind;
+                }
+            } else {
+                b_ind = headreader->getColumn(i + begin).findOff(off, r_ind);
+                bind[i] = b_ind;
+                blockreaders[i]->skipload(headreader->getColumn(i + begin).getOffset() + blocksize * b_ind,
+                                          headreader->getColumn(i + begin).getBlock(bind[i]).getRowcount());
+                rcounts[i] = headreader->getColumns()[i + begin].getBlock(bind[i]).getRowcount();
+                rind[i] = r_ind;
+                if (r->schema()->leafAt(i)->type() == CORES_STRING) {
+                    offarrs[i] = blockreaders[i]->initString(offsize);
+                }
+            }
+
             if (!blockreaders[i]->isvalid(rind[i])) {
-                rind[i]++;
+                r->fieldAt(i) = GenericDatum();
+                cout << "||" << " ";
                 continue;
             }
             switch (r->schema()->leafAt(i)->type()) {
-                case AVRO_LONG: {
-                    bind[i] = headreader->getColumn(i).findOff(off, rind[i]);
-                    blockreaders[i]->skipload(bind[i] * blocksize);
-                    if (rind[i] == rcounts[i]) {
-                        bind[i]++;
-                        rcounts[i] = headreader->getColumns()[i].getBlock(bind[i]).getRowcount();
-                        blockreaders[i]->loadFromFile(rcounts[i]);
-                        rind[i] = 0;
-                    }
-                    int64_t tmp = blockreaders[i]->next<int64_t>();
-                    r->schema()->setValid(i);
+                case CORES_LONG: {
+                    int64_t tmp = blockreaders[i]->get<int64_t>(blockreaders[i]->getValidOff(rind[i]));
                     r->fieldAt(i) = tmp;
-                    //couttmp<<" ";
+                    cout << tmp << " ";
                     rind[i]++;
                     break;
                 }
-                case AVRO_INT: {
-                    if (rind[i] == rcounts[i]) {
-                        bind[i]++;
-                        rcounts[i] = headreader->getColumns()[i].getBlock(bind[i]).getRowcount();
-                        blockreaders[i]->loadFromFile(rcounts[i]);
-                        rind[i] = 0;
-                    }
-                    int tmp = blockreaders[i]->next<int>();
-                    r->schema()->setValid(i);
+                case CORES_INT: {
+                    int tmp = blockreaders[i]->get<int>(blockreaders[i]->getValidOff(rind[i]));
                     r->fieldAt(i) = tmp;
-                    //couttmp<<" ";
+                    cout << tmp << " ";
                     rind[i]++;
                     break;
                 }
-                case AVRO_STRING: {
-                    if (rind[i] == rcounts[i]) {
-                        bind[i]++;
-                        rcounts[i] = headreader->getColumns()[i].getBlock(bind[i]).getRowcount();
-                        blockreaders[i]->loadFromFile(rcounts[i]);
-                        rind[i] = 0;
-                    }
+                case CORES_STRING: {
                     if (rind[i] == 0) {
                         offarrs[i] = blockreaders[i]->initString(offsize);
                     }
-                    int tmpi = (*offarrs[i])[rind[i]];
-                    char *tmp = blockreaders[i]->getoffstring((*offarrs[i])[rind[i]]);
-                    r->schema()->setValid(i);
+                    int tmpi = (*offarrs[i])[blockreaders[i]->getValidOff(rind[i])];
+                    char *tmp = blockreaders[i]->getoffstring(tmpi);
                     r->fieldAt(i) = tmp;
-                    //couttmp<<" ";
+                    cout << tmp << " ";
                     rind[i]++;
                     break;
                 }
-                case AVRO_FLOAT: {
-                    if (rind[i] == rcounts[i]) {
-                        bind[i]++;
-                        rcounts[i] = headreader->getColumns()[i].getBlock(bind[i]).getRowcount();
-                        blockreaders[i]->loadFromFile(rcounts[i]);
-                        rind[i] = 0;
-                    }
-                    float tmp = blockreaders[i]->next<float>();
-                    r->schema()->setValid(i);
+                case CORES_FLOAT: {
+                    float tmp = blockreaders[i]->get<float>(blockreaders[i]->getValidOff(rind[i]));
                     r->fieldAt(i) = tmp;
-                    //couttmp<<" ";
+                    cout << tmp << " ";
                     rind[i]++;
                     break;
                 }
-                case AVRO_BYTES: {
-                    if (rind[i] == rcounts[i]) {
-                        bind[i]++;
-                        rcounts[i] = headreader->getColumns()[i].getBlock(bind[i]).getRowcount();
-                        blockreaders[i]->loadFromFile(rcounts[i]);
-                        rind[i] = 0;
-                    }
-                    char tmp = blockreaders[i]->next<char>();
-                    r->schema()->setValid(i);
+                case CORES_BYTES: {
+                    char tmp = blockreaders[i]->get<char>(blockreaders[i]->getValidOff(rind[i]));
                     r->fieldAt(i) = tmp;
-                    //couttmp<<" ";
+                    cout << tmp << " ";
                     rind[i]++;
                     break;
                 }
-                case AVRO_ARRAY: {
-                    if (rind[i] == rcounts[i]) {
-                        bind[i]++;
-                        rcounts[i] = headreader->getColumns()[i].getBlock(bind[i]).getRowcount();
-                        blockreaders[i]->loadFromFile(rcounts[i]);
-                        rind[i] = 0;
-                    }
-                    arsize = blockreaders[i]->next<int>();
-                    rind[i]++;
+                case CORES_ARRAY: {
+//                        arsize = g_offset[rind[i]];
+//                        rind[i]++;
                 }
             }
         }
@@ -984,74 +1668,117 @@ public:
     bool next() {
         if (bind[0] < headreader->getColumn(begin).getblockCount()) {
             r->schema()->invalidate();
-//            if(r->schema()->name().fullname().compare("Part")==0)
-//            cout<<"\n"<<r->schema()->name().fullname()<<" ";
-            for (int i = 0; i < end-begin; ++i) {
+            for (int i = 0; i < end - begin; ++i) {
                 if (rind[i] == rcounts[i]) {
                     bind[i]++;
-                    if(bind[i] == headreader->getColumn(begin+i).getblockCount())
+                    if (bind[i] == headreader->getColumn(begin + i).getblockCount())
                         return false;
-                    rcounts[i] = headreader->getColumns()[i+begin].getBlock(bind[i]).getRowcount();
-                    blockreaders[i]->loadFromFile(rcounts[i]);
+                    rcounts[i] = headreader->getColumns()[i + begin].getBlock(bind[i]).getRowcount();
+                    if (r->schema()->isRequired(i))
+                        blockreaders[i]->loadFromFile(rcounts[i]);
+                    else
+                        blockreaders[i]->loadFromFile();
                     rind[i] = 0;
                 }
-                if (!blockreaders[i]->isvalid(rind[i])) {
-                    if(r->schema()->leafAt(i)->type()==AVRO_STRING&&rind[i]==0){
-                        offarrs[i] = blockreaders[i]->initString(offsize);
+                if (r->schema()->isRequired(i)) {
+                    switch (r->schema()->leafAt(i)->type()) {
+                        case CORES_LONG: {
+                            int64_t tmp = blockreaders[i]->next<int64_t>();
+                            r->fieldAt(i) = tmp;
+                            //couttmp<<" ";
+                            rind[i]++;
+                            break;
+                        }
+                        case CORES_INT: {
+                            int tmp = blockreaders[i]->next<int>();
+                            r->fieldAt(i) = tmp;
+                            //couttmp<<" ";
+                            rind[i]++;
+                            break;
+                        }
+                        case CORES_STRING: {
+                            if (rind[i] == 0) {
+                                offarrs[i] = blockreaders[i]->initString(offsize);
+                            }
+                            int tmpi = (*offarrs[i])[rind[i]];
+                            char *tmp = blockreaders[i]->getoffstring(tmpi);
+                            r->fieldAt(i) = tmp;
+                            //couttmp<<" ";
+                            rind[i]++;
+                            break;
+                        }
+                        case CORES_FLOAT: {
+                            float tmp = blockreaders[i]->next<float>();
+                            r->fieldAt(i) = tmp;
+                            //couttmp<<" ";
+                            rind[i]++;
+                            break;
+                        }
+                        case CORES_BYTES: {
+                            char tmp = blockreaders[i]->next<char>();
+                            r->fieldAt(i) = tmp;
+                            //couttmp<<" ";
+                            rind[i]++;
+                            break;
+                        }
+                        case CORES_ARRAY: {
+                            arsize = blockreaders[i]->next<int>();
+                            rind[i]++;
+                        }
                     }
-                    rind[i]++;
-                    continue;
-                }
-//                if(r->schema()->name().fullname().compare("Part")==0)
-//                cout<<i<<" ";
-                switch (r->schema()->leafAt(i)->type()) {
-                    case AVRO_LONG: {
-                        int64_t tmp = blockreaders[i]->next<int64_t>();
-                        r->schema()->setValid(i);
-                        r->fieldAt(i) = tmp;
-                        //couttmp<<" ";
-                        rind[i]++;
-                        break;
-                    }
-                    case AVRO_INT: {
-                        int tmp = blockreaders[i]->next<int>();
-                        r->schema()->setValid(i);
-                        r->fieldAt(i) = tmp;
-                        //couttmp<<" ";
-                        rind[i]++;
-                        break;
-                    }
-                    case AVRO_STRING: {
-                        if (rind[i] == 0) {
+                } else {
+                    if (!blockreaders[i]->isvalid(rind[i])) {
+                        if (r->schema()->leafAt(i)->type() == CORES_STRING && rind[i] == 0) {
                             offarrs[i] = blockreaders[i]->initString(offsize);
                         }
-                        int tmpi = (*offarrs[i])[rind[i]];
-                        char *tmp = blockreaders[i]->getoffstring(tmpi);
-                        r->schema()->setValid(i);
-                        r->fieldAt(i) = tmp;
-                        //couttmp<<" ";
+                        r->fieldAt(i) = GenericDatum();
                         rind[i]++;
-                        break;
+                        continue;
                     }
-                    case AVRO_FLOAT: {
-                        float tmp = blockreaders[i]->next<float>();
-                        r->schema()->setValid(i);
-                        r->fieldAt(i) = tmp;
-                        //couttmp<<" ";
-                        rind[i]++;
-                        break;
-                    }
-                    case AVRO_BYTES: {
-                        char tmp = blockreaders[i]->next<char>();
-                        r->schema()->setValid(i);
-                        r->fieldAt(i) = tmp;
-                        //couttmp<<" ";
-                        rind[i]++;
-                        break;
-                    }
-                    case AVRO_ARRAY: {
-                        arsize = blockreaders[i]->next<int>();
-                        rind[i]++;
+                    switch (r->schema()->leafAt(i)->type()) {
+                        case CORES_LONG: {
+                            int64_t tmp = blockreaders[i]->next<int64_t>();
+                            r->fieldAt(i) = tmp;
+                            //couttmp<<" ";
+                            rind[i]++;
+                            break;
+                        }
+                        case CORES_INT: {
+                            int tmp = blockreaders[i]->next<int>();
+                            r->fieldAt(i) = tmp;
+                            //couttmp<<" ";
+                            rind[i]++;
+                            break;
+                        }
+                        case CORES_STRING: {
+                            if (rind[i] == 0) {
+                                offarrs[i] = blockreaders[i]->initString(offsize);
+                            }
+                            int tmpi = (*offarrs[i])[rind[i]];
+                            char *tmp = blockreaders[i]->getoffstring(tmpi);
+                            r->fieldAt(i) = tmp;
+                            //couttmp<<" ";
+                            rind[i]++;
+                            break;
+                        }
+                        case CORES_FLOAT: {
+                            float tmp = blockreaders[i]->next<float>();
+                            r->fieldAt(i) = tmp;
+                            //couttmp<<" ";
+                            rind[i]++;
+                            break;
+                        }
+                        case CORES_BYTES: {
+                            char tmp = blockreaders[i]->next<char>();
+                            r->fieldAt(i) = tmp;
+                            //couttmp<<" ";
+                            rind[i]++;
+                            break;
+                        }
+                        case CORES_ARRAY: {
+                            arsize = blockreaders[i]->next<int>();
+                            rind[i]++;
+                        }
                     }
                 }
             }
@@ -1061,19 +1788,118 @@ public:
         }
     }
 
+    bool next(int n) {
+        for (int i = 0; i < end - begin; ++i) {
+            int r_ind, b_ind, vr_ind;
+            bool flag = false;
+            int off = n + rind[i];
+            while (off >= headreader->getColumn(i + begin).getBlock(bind[i]).getOffset()) {
+                bind[i]++;
+                flag = true;
+            }
+            if (flag) {
+                blockreaders[i]->skipload(headreader->getColumn(i + begin).getOffset() + blocksize * b_ind,
+                                          headreader->getColumn(i + begin).getBlock(bind[i]).getRowcount());
+                rcounts[i] = headreader->getColumns()[i + begin].getBlock(bind[i]).getRowcount();
+                rind[i] = off - headreader->getColumns()[i + begin].getBlock(bind[i]).getOffset();
+                if (r->schema()->leafAt(i)->type() == CORES_STRING) {
+                    offarrs[i] = blockreaders[i]->initString(offsize);
+                }
+            }
+
+            if (!blockreaders[i]->isvalid(rind[i])) {
+                r->fieldAt(i) = GenericDatum();
+                cout << "||" << " ";
+                continue;
+            }
+            switch (r->schema()->leafAt(i)->type()) {
+                case CORES_LONG: {
+                    int64_t tmp = blockreaders[i]->get<int64_t>(blockreaders[i]->getValidOff(rind[i]));
+                    r->fieldAt(i) = tmp;
+                    cout << tmp << " ";
+                    rind[i]++;
+                    break;
+                }
+                case CORES_INT: {
+                    int tmp = blockreaders[i]->get<int>(blockreaders[i]->getValidOff(rind[i]));
+                    r->fieldAt(i) = tmp;
+                    cout << tmp << " ";
+                    rind[i]++;
+                    break;
+                }
+                case CORES_STRING: {
+                    if (rind[i] == 0) {
+                        offarrs[i] = blockreaders[i]->initString(offsize);
+                    }
+                    int tmpi = (*offarrs[i])[blockreaders[i]->getValidOff(rind[i])];
+                    char *tmp = blockreaders[i]->getoffstring(tmpi);
+                    r->fieldAt(i) = tmp;
+                    cout << tmp << " ";
+                    rind[i]++;
+                    break;
+                }
+                case CORES_FLOAT: {
+                    float tmp = blockreaders[i]->get<float>(blockreaders[i]->getValidOff(rind[i]));
+                    r->fieldAt(i) = tmp;
+                    cout << tmp << " ";
+                    rind[i]++;
+                    break;
+                }
+                case CORES_BYTES: {
+                    char tmp = blockreaders[i]->get<char>(blockreaders[i]->getValidOff(rind[i]));
+                    r->fieldAt(i) = tmp;
+                    cout << tmp << " ";
+                    rind[i]++;
+                    break;
+                }
+                case CORES_ARRAY: {
+//                        arsize = g_offset[rind[i]];
+//                        rind[i]++;
+                }
+            }
+        }
+    }
+
+    void initOffset(int aInd) {
+        if (r->schema()->leafAt(aInd)->type() != CORES_ARRAY) {
+            cout << "arr ind error" << endl;
+            return;
+        }
+        bind[aInd] = 0;
+        rcounts[aInd] = headreader->getColumns()[aInd + begin].getBlock(bind[aInd]).getRowcount();
+        int tmp = 0;
+        while (1) {
+            if (rind[aInd] == rcounts[aInd]) {
+                bind[aInd]++;
+                if (bind[aInd] == headreader->getColumn(begin + aInd).getblockCount())
+                    return;
+                rcounts[aInd] = headreader->getColumns()[aInd + begin].getBlock(bind[aInd]).getRowcount();
+                blockreaders[aInd]->loadFromFile(rcounts[aInd]);
+                rind[aInd] = 0;
+            }
+            tmp += blockreaders[aInd]->next<int>();
+            rind[aInd]++;
+            g_offset.push_back(tmp);
+        }
+    }
+
+    int getOff(int ind) {
+        return g_offset[ind];
+    }
+
     int getArrsize() {
         return arsize;
     }
 
     void setArr(const vector<GenericDatum> &rs, int i) {
-        if (r->schema()->leafAt(i)->type() == AVRO_ARRAY)
+        if (r->schema()->leafAt(i)->type() == CORES_ARRAY)
             r->fieldAt(i).value<GenericArray>().value() = rs;
         else
             cout << "this is not a arr" << endl;
     }
 
     vector<GenericDatum> &getArr(int i) {
-        if (r->schema()->leafAt(i)->type() == AVRO_ARRAY)
+        if (r->schema()->leafAt(i)->type() == CORES_ARRAY)
             return r->fieldAt(i).value<GenericArray>().value();
         cout << "this is not a arr" << endl;
     }
@@ -1084,7 +1910,7 @@ public:
             ind++;
             for (int i :r1) {
                 switch (r.schema()->leafAt(i)->type()) {
-                    case AVRO_LONG: {
+                    case CORES_LONG: {
                         if (rind[i] == rcounts[i]) {
                             blockreaders[i]->loadFromFile();
                             rind[i] = 0;
@@ -1097,7 +1923,7 @@ public:
                         rind[i]++;
                         break;
                     }
-                    case AVRO_INT: {
+                    case CORES_INT: {
                         if (rind[i] == rcounts[i]) {
                             blockreaders[i]->loadFromFile();
                             rind[i] = 0;
@@ -1110,7 +1936,7 @@ public:
                         rind[i]++;
                         break;
                     }
-                    case AVRO_STRING: {
+                    case CORES_STRING: {
                         if (rind[i] == rcounts[i]) {
                             blockreaders[i]->loadFromFile();
                             rind[i] = 0;
@@ -1123,7 +1949,7 @@ public:
                         rind[i]++;
                         break;
                     }
-                    case AVRO_FLOAT: {
+                    case CORES_FLOAT: {
                         if (rind[i] == rcounts[i]) {
                             blockreaders[i]->loadFromFile();
                             rind[i] = 0;
@@ -1136,7 +1962,7 @@ public:
                         rind[i]++;
                         break;
                     }
-                    case AVRO_BYTES: {
+                    case CORES_BYTES: {
                         if (rind[i] == rcounts[i]) {
                             blockreaders[i]->loadFromFile();
                             rind[i] = 0;
@@ -1149,7 +1975,7 @@ public:
                         rind[i]++;
                         break;
                     }
-                    case AVRO_ARRAY: {
+                    case CORES_ARRAY: {
                         if (rind[i] == rcounts[i]) {
                             blockreaders[i]->loadFromFile();
                             rind[i] = 0;
@@ -1163,7 +1989,7 @@ public:
                         for (int j = 0; j < arrsize; ++j) {
                             for (int k :r2) {
                                 switch (r[1]->fieldAt(k - 10).type()) {
-                                    case AVRO_LONG: {
+                                    case CORES_LONG: {
                                         if (rind[k] == rcounts[k]) {
                                             blockreaders[k]->loadFromFile();
                                             rind[k] = 0;
@@ -1176,7 +2002,7 @@ public:
                                         rind[k]++;
                                         break;
                                     }
-                                    case AVRO_INT: {
+                                    case CORES_INT: {
                                         if (rind[k] == rcounts[k]) {
                                             blockreaders[k]->loadFromFile();
                                             rind[k] = 0;
@@ -1189,7 +2015,7 @@ public:
                                         rind[k]++;
                                         break;
                                     }
-                                    case AVRO_STRING: {
+                                    case CORES_STRING: {
                                         if (rind[k] == rcounts[k]) {
                                             blockreaders[k]->loadFromFile();
                                             rind[k] = 0;
@@ -1202,7 +2028,7 @@ public:
                                         rind[k]++;
                                         break;
                                     }
-                                    case AVRO_FLOAT: {
+                                    case CORES_FLOAT: {
                                         if (rind[k] == rcounts[k]) {
                                             blockreaders[k]->loadFromFile();
                                             rind[k] = 0;
@@ -1215,7 +2041,7 @@ public:
                                         rind[k]++;
                                         break;
                                     }
-                                    case AVRO_BYTES: {
+                                    case CORES_BYTES: {
                                         if (rind[k] == rcounts[k]) {
                                             blockreaders[k]->loadFromFile();
                                             rind[k] = 0;
@@ -1250,7 +2076,7 @@ public:
             ind++;
             for (int i :r1) {
                 switch (r[0]->schema()->leafAt(i)->type()) {
-                    case AVRO_LONG: {
+                    case CORES_LONG: {
                         if (rind[i] == rcounts[i]) {
                             blockreaders[i]->loadFromFile();
                             rind[i] = 0;
@@ -1263,7 +2089,7 @@ public:
                         rind[i]++;
                         break;
                     }
-                    case AVRO_INT: {
+                    case CORES_INT: {
                         if (rind[i] == rcounts[i]) {
                             blockreaders[i]->loadFromFile();
                             rind[i] = 0;
@@ -1276,7 +2102,7 @@ public:
                         rind[i]++;
                         break;
                     }
-                    case AVRO_STRING: {
+                    case CORES_STRING: {
                         if (rind[i] == rcounts[i]) {
                             blockreaders[i]->loadFromFile();
                             rind[i] = 0;
@@ -1289,7 +2115,7 @@ public:
                         rind[i]++;
                         break;
                     }
-                    case AVRO_FLOAT: {
+                    case CORES_FLOAT: {
                         if (rind[i] == rcounts[i]) {
                             blockreaders[i]->loadFromFile();
                             rind[i] = 0;
@@ -1302,7 +2128,7 @@ public:
                         rind[i]++;
                         break;
                     }
-                    case AVRO_BYTES: {
+                    case CORES_BYTES: {
                         if (rind[i] == rcounts[i]) {
                             blockreaders[i]->loadFromFile();
                             rind[i] = 0;
@@ -1315,7 +2141,7 @@ public:
                         rind[i]++;
                         break;
                     }
-                    case AVRO_ARRAY: {
+                    case CORES_ARRAY: {
                         if (rind[i] == rcounts[i]) {
                             blockreaders[i]->loadFromFile();
                             rind[i] = 0;
@@ -1329,7 +2155,7 @@ public:
                         for (int j = 0; j < arrsize; ++j) {
                             for (int k :r2) {
                                 switch (r[1]->fieldAt(k - 10).type()) {
-                                    case AVRO_LONG: {
+                                    case CORES_LONG: {
                                         if (rind[k] == rcounts[k]) {
                                             blockreaders[k]->loadFromFile();
                                             rind[k] = 0;
@@ -1342,7 +2168,7 @@ public:
                                         rind[k]++;
                                         break;
                                     }
-                                    case AVRO_INT: {
+                                    case CORES_INT: {
                                         if (rind[k] == rcounts[k]) {
                                             blockreaders[k]->loadFromFile();
                                             rind[k] = 0;
@@ -1355,7 +2181,7 @@ public:
                                         rind[k]++;
                                         break;
                                     }
-                                    case AVRO_STRING: {
+                                    case CORES_STRING: {
                                         if (rind[k] == rcounts[k]) {
                                             blockreaders[k]->loadFromFile();
                                             rind[k] = 0;
@@ -1368,7 +2194,7 @@ public:
                                         rind[k]++;
                                         break;
                                     }
-                                    case AVRO_FLOAT: {
+                                    case CORES_FLOAT: {
                                         if (rind[k] == rcounts[k]) {
                                             blockreaders[k]->loadFromFile();
                                             rind[k] = 0;
@@ -1381,7 +2207,7 @@ public:
                                         rind[k]++;
                                         break;
                                     }
-                                    case AVRO_BYTES: {
+                                    case CORES_BYTES: {
                                         if (rind[k] == rcounts[k]) {
                                             blockreaders[k]->loadFromFile();
                                             rind[k] = 0;

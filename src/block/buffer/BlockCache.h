@@ -324,8 +324,8 @@ public:
         fread(_cache, sizeof(char), _limit, _fp);
     }
 
-    void skipload(int offset) {
-        _cursor = 0;
+    void skipload(int offset, int rowcount) {
+        _cursor = ceil((double) rowcount / 8);
         _count = 0;
         fseek(_fp, offset, SEEK_SET);
         fread(_cache, sizeof(char), _limit, _fp);
@@ -333,6 +333,19 @@ public:
 
     bool isvalid(int off) {
         return (((char *) _cache)[off / 8]) & (1l << off % 8) != 0;
+    }
+
+    int getValidOff(int off) {
+        int count = 0;
+        for (int i = 0; i < off / 8; ++i) {
+            for (int j = 0; j < 8; ++j) {
+                count += (((char *) _cache)[i] >> j) & 1l;
+            }
+        }
+        for (int k = 0; k < off % 8; ++k) {
+            count += (((char *) _cache)[off / 8] >> k) & 1l;
+        }
+        return count;
     }
 
     void appendToFile() {
@@ -399,9 +412,9 @@ public:
 
         vector<int> *offarr = new vector<int>();
         memcpy(tmpbuf, tmp, offsize);
-        int* tmpi = (int *) tmpbuf;
+        int *tmpi = (int *) tmpbuf;
         offarr->push_back(*tmpi);
-        int num = (*tmpi - _cursor) / offsize;
+        int num = (*tmpi) / offsize;
         for (int j = 1; j < num; ++j) {
             tmp += offsize;
             memcpy(tmpbuf, tmp, offsize);

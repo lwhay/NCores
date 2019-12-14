@@ -1,0 +1,124 @@
+{
+  "type": "record",
+  "name": "Order",
+  "fields": [
+    {
+      "name": "o_orderkey",
+      "type": "long",
+      "order": "ignore"
+    },
+    {
+      "name": "o_custkey",
+      "type": "long"
+    },
+    {
+      "name": "o_orderstatus",
+      "type": "string",
+      "option":"optional"
+    },
+    {
+      "name": "o_totalprice",
+      "type": "float"
+    },
+    {
+      "name": "o_orderdate",
+      "type": "string",
+      "option":"optional"
+    },
+    {
+      "name": "o_orderpriority",
+      "type": "string"
+    },
+    {
+      "name": "o_clerk",
+      "type": "string"
+    },
+    {
+      "name": "o_shippriority",
+      "type": "int"
+    },
+    {
+      "name": "o_comment",
+      "type": "string"
+    },
+    {
+      "name": "LineitemList",
+      "type": {
+        "type": "array",
+        "items": {
+          "type": "record",
+          "name": "Lineitem",
+          "fields": [
+            {
+              "name": "l_orderkey",
+              "type": "long",
+              "order": "ignore"
+            },
+            {
+              "name": "l_partkey",
+              "type": "long"
+            },
+            {
+              "name": "l_suppkey",
+              "type": "long"
+            },
+            {
+              "name": "l_linenumber",
+              "type": "int",
+              "option":"optional"
+            },
+            {
+              "name": "l_quantity",
+              "type": "float"
+            },
+            {
+              "name": "l_extendedprice",
+              "type": "float"
+            },
+            {
+              "name": "l_discount",
+              "type": "float"
+            },
+            {
+              "name": "l_tax",
+              "type": "float"
+            },
+            {
+              "name": "l_returnflag",
+              "type": "bytes"
+            },
+            {
+              "name": "l_linestatus",
+              "type": "bytes"
+            },
+            {
+              "name": "l_shipdate",
+              "type": "string"
+            },
+            {
+              "name": "l_commitdate",
+              "type": "string"
+            },
+            {
+              "name": "l_receiptdate",
+              "type": "string"
+            },
+            {
+              "name": "l_shipinstruct",
+              "type": "string"
+            },
+            {
+              "name": "l_shipmode",
+              "type": "string"
+            },
+            {
+              "name": "l_comment",
+              "type": "string",
+              "option":"optional"
+            }
+          ]
+        }
+      }
+    }
+  ]
+}
