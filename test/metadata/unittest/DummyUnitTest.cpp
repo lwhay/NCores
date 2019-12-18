@@ -23,6 +23,7 @@
 #include "BatchFileWriter.h"
 #include "Parser.h"
 #include <gtest/gtest.h>
+#include "ColumnarData.h"
 
 
 struct recordReader {
@@ -228,21 +229,21 @@ void requiredWriter(char *tblfile1 = "../res/test/requiredtest/orders.tbl",
         vl[orderkey - 1];
         vo.push_back(GenericDatum(tmp));
     }
-    BatchFileWriter file0(rs[0], result0, blocksize);
-    BatchFileWriter file1(rs[1], result1, blocksize);
+    BatchFileWriter file0(rs[0], result0, blocksize,true);
+    BatchFileWriter file1(rs[1], result1, blocksize,true);
 
     for (auto iter0:vo) {
-        file0.writeRecord(iter0.value<GenericRecord>());
+        file0.write(iter0.value<GenericRecord>());
         for (auto iter1:iter0.value<GenericRecord>().fieldAt(9).value<GenericArray>().value()) {
-            file1.writeRecord(iter1.value<GenericRecord>());
+            file1.write(iter1.value<GenericRecord>());
         }
     }
 
 
-    file0.writeRest();
-    file0.mergeFiles();
-    file1.writeRest();
-    file1.mergeFiles();
+    file0.writeRest(true);
+    file0.mergeFiles(true);
+    file1.writeRest(true);
+    file1.mergeFiles(true);
 
     requiredfilesMerge(result0, result1, result);
 }
@@ -277,23 +278,32 @@ int requiredReader(bool flag, char *datafile = "./tmpresult/fileout.dat",
     shared_ptr<HeadReader> headreader(new HeadReader());
     headreader->readHeader(file_in);
     file_in.close();
-    fileReader fr0(GenericDatum(rs[0]), headreader, bs[0], bs[1] - 1, datafile,true);
-    fileReader fr1(GenericDatum(rs[1]), headreader, bs[1], bs[2] - 1, datafile,true);
+    fileReader fr0(GenericDatum(rs[0]), headreader, bs[0], bs[1] - 1, datafile);
+    fileReader fr1(GenericDatum(rs[1]), headreader, bs[1], bs[2] - 1, datafile);
 
     vector<GenericDatum> &pss = fr0.getArr(bs[1] - 1);
     pss = vector<GenericDatum>();
 
+    for (int k = 0; k <headreader->getColumn(0).getblockCount() ; ++k) {
+        cout<<headreader->getColumn(0).getBlock(k).getOffset()<<" "<<headreader->getColumn(0).getBlock(k).getRowcount()<<endl;
+
+    }
+
     int ind = 0, indp = 0, indps = 0;
     while (fr0.next()) {
+        cout<<endl;
         indp++;
+        int64_t key=fr0.getRecord().fieldAt(0).value<int64_t >();
         int i = fr0.getArrsize();
         for (int j = 0; j < i; ++j) {
             fr1.next();
+            cout<<endl;
             indps++;
             pss.push_back(GenericDatum(fr1.getRecord()));
-            if (pss.size() != 0)
-                pss.clear();
         }
+        cout<<endl;
+        if (pss.size() != 0)
+            pss.clear();
     }
 
     cout << "\n" << indp;

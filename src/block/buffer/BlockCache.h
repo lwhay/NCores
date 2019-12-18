@@ -201,8 +201,8 @@ struct function_ {
 //        return 0;
 //    }
 
-    static T _next(int &_cursor, void *_cache) {
-        return ((T *) _cache)[_cursor++];
+    static T _next(int &_count, void *_cache) {
+        return ((T *) _cache)[_count++];
     }
 };
 
@@ -235,9 +235,9 @@ struct function_<char *> {
 //    }
 
 
-    static char *_next(int &_cursor, void *_cache) {
-        char *tmp = (char *) _cache + _cursor;
-        _cursor += strlen(tmp) + 1;
+    static char *_next(int &_count, void *_cache) {
+        char *tmp = (char *) _cache + _count;
+        _count += strlen(tmp) + 1;
         return tmp;
     }
 };
@@ -402,7 +402,7 @@ public:
     template<typename type>
     type next() {
         int &tmp = _count;
-        type tmpc = function_<type>::_next(tmp, (char *) _cache + _cursor);
+        type tmpc = function_<type>::_next(_count, (char *) _cache + _cursor);
         return tmpc;
     }
 

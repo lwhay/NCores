@@ -206,6 +206,14 @@ void optionWriter(char *tblfile1 = "../res/test/optiontest/orders.tbl",
     for (int k = 0; k < rs.size(); ++k) {
         rrs[k].record = &rs[k];
     }
+    for (int i = 0; i < vschema->root()->leaves(); ++i) {
+        cout<<vschema->root()->nameAt(i)<<" ";
+        if(vschema->root()->isRequired(i))
+            cout<<"required"<<endl;
+        else
+            cout<<"optional"<<endl;
+    }
+
     fstream lf(tblfile2, ios::in);
     string ll;
     vector<vector<GenericDatum>> vl;
@@ -285,23 +293,30 @@ int optionReader(bool flag, char *datafile = "./tmpresult/fileout.dat",
     fileReader fr0(GenericDatum(rs[0]), headreader, bs[0], bs[1] - 1, datafile);
     fileReader fr1(GenericDatum(rs[1]), headreader, bs[1], bs[2] - 1, datafile);
 
+    for (int l = 0; l <headreader->getColumnCount() ; ++l) {
+        for (int k = 0; k <headreader->getColumn(l).getblockCount() ; ++k) {
+            cout<<headreader->getColumn(l).getBlock(k).getOffset()<<" "<<headreader->getColumn(l).getBlock(k).getRowcount()<<endl;
+        }
+    }
+
     vector<GenericDatum> &pss = fr0.getArr(bs[1] - 1);
     pss = vector<GenericDatum>();
 
     int ind = 0, indp = 0, indps = 0;
     while (fr0.next()) {
+        cout<<"\n";
         indp++;
         int i = fr0.getArrsize();
-        cout<<fr0.getRecord().fieldAt(0).value<int64_t >()<<" ";
-        cout<<fr0.getRecord().fieldAt(4).value<const char*>()<<" ";
-        cout<<fr0.getRecord().fieldAt(8).value<const char*>()<<endl;
+        int64_t key=fr0.getRecord().fieldAt(0).value<int64_t >();
         for (int j = 0; j < i; ++j) {
             fr1.next();
+            cout<<"\n";
             indps++;
             pss.push_back(GenericDatum(fr1.getRecord()));
-            if (pss.size() != 0)
-                pss.clear();
         }
+        if (pss.size() != 0)
+            pss.clear();
+        cout<<"\n";
     }
 
     cout << "\n" << indp;
