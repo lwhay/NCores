@@ -324,7 +324,7 @@ public:
         fread(_cache, sizeof(char), _limit, _fp);
     }
 
-    void skipload(int offset, int rowcount) {
+    void skipload(int64_t offset, int rowcount) {
         _cursor = ceil((double) rowcount / 8);
         _count = 0;
         fseek(_fp, offset, SEEK_SET);

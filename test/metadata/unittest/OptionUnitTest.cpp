@@ -38,8 +38,8 @@ public:
         vector<string> v;
         SplitString(line, v, "|");
         for (int i = 0; i < v.size(); ++i) {
-            if(v[i].size()==0){
-                record->fieldAt(i)=GenericDatum();
+            if (v[i].size() == 0) {
+                record->fieldAt(i) = GenericDatum();
                 continue;
             }
             switch (record->schema()->leafAt(i)->type()) {
@@ -92,14 +92,14 @@ void optionfilesMerge(string file1, string file2, string path) {
     cout << "file1" << endl;
     ifstream file_1;
     file_1.open(file1 + "/fileout.dat", ios_base::in | ios_base::binary);
-    HeadReader* headreader1(new HeadReader());
+    HeadReader *headreader1(new HeadReader());
     headreader1->readHeader(file_1);
     file_1.close();
 
     cout << "file2" << endl;
     ifstream file_2;
     file_2.open(file2 + "/fileout.dat", ios_base::in | ios_base::binary);
-    HeadReader* headreader2(new HeadReader());
+    HeadReader *headreader2(new HeadReader());
     headreader2->readHeader(file_2);
     file_2.close();
 
@@ -182,10 +182,10 @@ void optionfilesMerge(string file1, string file2, string path) {
 
 
 void optionWriter(char *tblfile1 = "../res/test/optiontest/orders.tbl",
-                    char *tblfile2 = "../res/test/optiontest/lineitem.tbl",
-                    char *result0 = "./layer0", char *result1 = "./layer1",
-                    char *result = "./tmpresult", char *schema = "../res/test/optiontest/nest.avsc",
-                    int blocksize = 1024) {
+                  char *tblfile2 = "../res/test/optiontest/lineitem.tbl",
+                  char *result0 = "./layer0", char *result1 = "./layer1",
+                  char *result = "./tmpresult", char *schema = "../res/test/optiontest/nest.avsc",
+                  int blocksize = 1024) {
     SchemaReader sr(schema, true);
     ValidSchema *vschema = sr.read();
     GenericDatum c = GenericDatum(vschema->root());
@@ -206,13 +206,14 @@ void optionWriter(char *tblfile1 = "../res/test/optiontest/orders.tbl",
     for (int k = 0; k < rs.size(); ++k) {
         rrs[k].record = &rs[k];
     }
+    /*option scema test
     for (int i = 0; i < vschema->root()->leaves(); ++i) {
         cout<<vschema->root()->nameAt(i)<<" ";
         if(vschema->root()->isRequired(i))
             cout<<"required"<<endl;
         else
             cout<<"optional"<<endl;
-    }
+    }*/
 
     fstream lf(tblfile2, ios::in);
     string ll;
@@ -241,8 +242,8 @@ void optionWriter(char *tblfile1 = "../res/test/optiontest/orders.tbl",
         vl[orderkey - 1];
         vo.push_back(GenericDatum(tmp));
     }
-    BatchFileWriter file0(rs[0], result0, blocksize,true);
-    BatchFileWriter file1(rs[1], result1, blocksize,true);
+    BatchFileWriter file0(rs[0], result0, blocksize, true);
+    BatchFileWriter file1(rs[1], result1, blocksize, true);
 
     for (auto iter0:vo) {
         file0.write(iter0.value<GenericRecord>());
@@ -261,7 +262,7 @@ void optionWriter(char *tblfile1 = "../res/test/optiontest/orders.tbl",
 }
 
 int optionReader(bool flag, char *datafile = "./tmpresult/fileout.dat",
-                   char *schema = "../res/test/optiontest/nest.avsc") {
+                 char *schema = "../res/test/optiontest/nest.avsc") {
     SchemaReader sr(schema, true);
     ValidSchema *vschema = sr.read();
     GenericDatum c = GenericDatum(vschema->root());
@@ -293,40 +294,54 @@ int optionReader(bool flag, char *datafile = "./tmpresult/fileout.dat",
     fileReader fr0(GenericDatum(rs[0]), headreader, bs[0], bs[1] - 1, datafile);
     fileReader fr1(GenericDatum(rs[1]), headreader, bs[1], bs[2] - 1, datafile);
 
+    /*head info test
     for (int l = 0; l <headreader->getColumnCount() ; ++l) {
         for (int k = 0; k <headreader->getColumn(l).getblockCount() ; ++k) {
             cout<<headreader->getColumn(l).getBlock(k).getOffset()<<" "<<headreader->getColumn(l).getBlock(k).getRowcount()<<endl;
         }
-    }
+    }*/
 
     vector<GenericDatum> &pss = fr0.getArr(bs[1] - 1);
     pss = vector<GenericDatum>();
 
     int ind = 0, indp = 0, indps = 0;
-    while (fr0.next()) {
-        cout<<"\n";
-        indp++;
-        int i = fr0.getArrsize();
-        int64_t key=fr0.getRecord().fieldAt(0).value<int64_t >();
-        for (int j = 0; j < i; ++j) {
-            fr1.next();
-            cout<<"\n";
-            indps++;
-            pss.push_back(GenericDatum(fr1.getRecord()));
+
+    if (flag) {
+        while (fr0.next()) {
+            cout << "\n";
+            indp++;
+            int i = fr0.getArrsize();
+            int64_t key = fr0.getRecord().fieldAt(0).value<int64_t>();
+            for (int j = 0; j < i; ++j) {
+                fr1.next();
+                cout << "\n";
+                indps++;
+                pss.push_back(GenericDatum(fr1.getRecord()));
+            }
+            if (pss.size() != 0)
+                pss.clear();
+            cout << "\n";
         }
-        if (pss.size() != 0)
-            pss.clear();
-        cout<<"\n";
+    } else {
+        while (fr0.next()) {
+            cout << "\n";
+            indp++;
+            int i = fr0.getArrsize();
+            int64_t key = fr0.getRecord().fieldAt(0).value<int64_t>();
+            if (i >= 1) {
+                fr1.next(i - 1);
+                cout << "\n";
+            }
+            cout << "\n";
+        }
     }
+
 
     cout << "\n" << indp;
     cout << "\n" << indps;
     cout << "\n" << ind;
 
-    if (flag)
-        return indp;
-    else
-        return indps;
+    return indp;
 
 }
 
@@ -339,7 +354,7 @@ void SETUP() {
 }
 
 TEST(SchemaTest, DummyTest) {
-    EXPECT_EQ(1500 , optionReader(true));
+    EXPECT_EQ(1500, optionReader(false));
 }
 
 void TEARDOWN() {
