@@ -1708,14 +1708,14 @@ public:
                     case CORES_LONG: {
                         int64_t tmp = blockreaders[i]->next<int64_t>();
                         r->fieldAt(i) = tmp;
-                        cout << tmp << " ";
+//                        cout << tmp << " ";
                         rind[i]++;
                         break;
                     }
                     case CORES_INT: {
                         int tmp = blockreaders[i]->next<int>();
                         r->fieldAt(i) = tmp;
-                        cout << tmp << " ";
+//                        cout << tmp << " ";
                         rind[i]++;
                         break;
                     }
@@ -1723,21 +1723,21 @@ public:
                         int tmpi = (*offarrs[i])[rind[i]];
                         char *tmp = blockreaders[i]->getoffstring(tmpi);
                         r->fieldAt(i) = tmp;
-                        cout << tmp << " ";
+//                        cout << tmp << " ";
                         rind[i]++;
                         break;
                     }
                     case CORES_FLOAT: {
                         float tmp = blockreaders[i]->next<float>();
                         r->fieldAt(i) = tmp;
-                        cout << tmp << " ";
+//                        cout << tmp << " ";
                         rind[i]++;
                         break;
                     }
                     case CORES_BYTES: {
                         char tmp = blockreaders[i]->next<char>();
                         r->fieldAt(i) = tmp;
-                        cout << tmp << " ";
+//                        cout << tmp << " ";
                         rind[i]++;
                         break;
                     }

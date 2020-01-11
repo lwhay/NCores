@@ -206,6 +206,7 @@ void requiredWriter(char *tblfile1 = "../res/test/requiredtest/orders.tbl",
     string ll;
     vector<vector<GenericDatum>> vl;
     vector<GenericDatum> vo;
+    cout<<"line reading"<<endl;
     while (std::getline(lf, ll)) {
         rrs[1].readLine(ll);
         GenericRecord tmp = rrs[1].getRecord();
@@ -218,6 +219,7 @@ void requiredWriter(char *tblfile1 = "../res/test/requiredtest/orders.tbl",
     fstream of(tblfile1, ios::in);
     string ol;
     int indpsl = 0;
+    cout<<"orders reading"<<endl;
     while (std::getline(of, ol)) {
         rrs[0].readLine(ol);
         indpsl++;
@@ -226,12 +228,13 @@ void requiredWriter(char *tblfile1 = "../res/test/requiredtest/orders.tbl",
 
         tmp.fieldAt(9).value<GenericArray>().value() = vl[orderkey - 1];
 //        cout<<partkey<<" "<<vs[partkey-1].size()<<endl;
-        vl[orderkey - 1];
+        vl[orderkey - 1].clear();
         vo.push_back(GenericDatum(tmp));
     }
     BatchFileWriter file0(rs[0], result0, blocksize,true);
     BatchFileWriter file1(rs[1], result1, blocksize,true);
 
+    cout<<"writing"<<endl;
     for (auto iter0:vo) {
         file0.write(iter0.value<GenericRecord>());
         for (auto iter1:iter0.value<GenericRecord>().fieldAt(9).value<GenericArray>().value()) {
@@ -285,30 +288,30 @@ int requiredReader(bool flag, char *datafile = "./tmpresult/fileout.dat",
     pss = vector<GenericDatum>();
 
     for (int k = 0; k <headreader->getColumn(0).getblockCount() ; ++k) {
-        cout<<headreader->getColumn(0).getBlock(k).getOffset()<<" "<<headreader->getColumn(0).getBlock(k).getRowcount()<<endl;
+//        cout<<headreader->getColumn(0).getBlock(k).getOffset()<<" "<<headreader->getColumn(0).getBlock(k).getRowcount()<<endl;
 
     }
 
     int ind = 0, indp = 0, indps = 0;
     while (fr0.next()) {
-        cout<<endl;
+//        cout<<endl;
         indp++;
         int64_t key=fr0.getRecord().fieldAt(0).value<int64_t >();
         int i = fr0.getArrsize();
         for (int j = 0; j < i; ++j) {
             fr1.next();
-            cout<<endl;
+//            cout<<endl;
             indps++;
             pss.push_back(GenericDatum(fr1.getRecord()));
         }
-        cout<<endl;
+//        cout<<endl;
         if (pss.size() != 0)
             pss.clear();
     }
 
-    cout << "\n" << indp;
-    cout << "\n" << indps;
-    cout << "\n" << ind;
+
+
+
 
     if (flag)
         return indp;
@@ -322,7 +325,7 @@ void SETUP() {
     system("mkdir layer1");
     system("mkdir tmpresult");
 
-    requiredWriter();
+    requiredWriter("/kolla/asterixdb/tpch_2_16_1/dbgen/orders.tbl","/kolla/asterixdb/tpch_2_16_1/dbgen/lineitem.tbl");
 }
 
 TEST(SchemaTest, DummyTest) {
@@ -337,7 +340,7 @@ void TEARDOWN() {
 }
 
 int main(int argc, char **argv) {
-    SETUP();
+//    SETUP();
     ::testing::InitGoogleTest(&argc, argv);
     int ret = RUN_ALL_TESTS();
     TEARDOWN();
