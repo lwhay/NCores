@@ -309,6 +309,8 @@ int requiredReader(bool flag, char *datafile = "./tmpresult/fileout.dat",
             pss.clear();
     }
 
+    cout << "\n" << ind;
+
 
 
 

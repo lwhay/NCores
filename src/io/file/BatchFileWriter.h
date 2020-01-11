@@ -1835,6 +1835,36 @@ public:
         return true;
     }
 
+    void printRecord() {
+        for (int i = 0; i < end - begin; ++i) {
+            switch (r->schema()->leafAt(i)->type()) {
+                case CORES_LONG: {
+                    cout << r->fieldAt(i).value<int64_t>() << " ";
+                    break;
+                }
+                case CORES_INT: {
+                    cout << r->fieldAt(i).value<int>() << " ";
+                    break;
+                }
+                case CORES_STRING: {
+                    cout << r->fieldAt(i).value<const char *>() << " ";
+                    break;
+                }
+                case CORES_FLOAT: {
+                    cout << r->fieldAt(i).value<float>() << " ";
+                    break;
+                }
+                case CORES_BYTES: {
+                    cout << r->fieldAt(i).value<char>() << " ";
+                    break;
+                }
+                case CORES_ARRAY: {
+                    break;
+                }
+            }
+        }
+    }
+
     void initOffset(int aInd) {
         if (r->schema()->leafAt(aInd)->type() != CORES_ARRAY) {
             cout << "arr ind error" << endl;

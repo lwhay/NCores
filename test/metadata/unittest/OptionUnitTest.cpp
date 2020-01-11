@@ -354,7 +354,7 @@ void SETUP() {
 }
 
 TEST(SchemaTest, DummyTest) {
-    EXPECT_EQ(1500, optionReader(false));
+    EXPECT_EQ(1500, optionReader(true));
 }
 
 void TEARDOWN() {

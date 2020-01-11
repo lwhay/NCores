@@ -296,6 +296,7 @@ if (COLUMN_UNIT)
     set(COLUMN_UNITTEST
             test/metadata/unittest/DummyUnitTest.cpp
             test/metadata/unittest/OptionUnitTest.cpp
+            test/metadata/unittest/FilterUnitTest.cpp
             )
 endif ()
 

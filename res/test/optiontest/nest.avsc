@@ -18,7 +18,8 @@
     },
     {
       "name": "o_totalprice",
-      "type": "float"
+      "type": "float",
+      "option":"optional"
     },
     {
       "name": "o_orderdate",
