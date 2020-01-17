@@ -5,7 +5,7 @@
 #ifndef CORES_PARSER_H
 #define CORES_PARSER_H
 
-#include "filter.h"
+#include "Filter.h"
 
 using namespace std;
 
