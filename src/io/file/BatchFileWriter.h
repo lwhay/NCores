@@ -1514,10 +1514,9 @@ private:
 
 public:
     fileReader(GenericDatum c, shared_ptr<HeadReader> _headreader, int _begin, int _end, char *resultfile) : begin(
-            _begin), end(_end + 1) {
+            _begin), end(_end + 1),r(GenericRecord(c.value<GenericRecord>())) {
         headreader = _headreader;
         ind = 0;
-        r = GenericRecord(c.value<GenericRecord>());
         ifstream file_in;
         int colnum = end - begin;
         fpp = vector<FILE *>(colnum);
@@ -1555,10 +1554,9 @@ public:
 
     fileReader(GenericDatum c, shared_ptr<HeadReader> _headreader, int _begin, int _end, char *resultfile, bool flag)
             : begin(
-            _begin), end(_end + 1) {
+            _begin), end(_end + 1),r(GenericRecord(c.value<GenericRecord>())) {
         headreader = _headreader;
         ind = 0;
-        r = new GenericRecord(c.value<GenericRecord>());
         ifstream file_in;
         int colnum = end - begin;
         fpp = vector<FILE *>(colnum);
