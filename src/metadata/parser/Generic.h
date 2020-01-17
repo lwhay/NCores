@@ -118,7 +118,7 @@ public:
 
     GenericDatum(GenericRecord *v);
 
-    GenericDatum(GenericRecord v);
+    GenericDatum(GenericRecord& v);
 
     /**
      * Constructs a datum corresponding to the given CORES type.
@@ -376,7 +376,7 @@ GenericDatum::GenericDatum(GenericRecord *v) {
     value_ = *v;
 }
 
-GenericDatum::GenericDatum(GenericRecord v) {
+GenericDatum::GenericDatum(GenericRecord& v) {
     type_ = CORES_RECORD;
     value_ = v;
 }

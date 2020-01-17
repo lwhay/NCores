@@ -1490,7 +1490,7 @@ public:
 
 class fileReader {
 private:
-    GenericRecord *r;
+    GenericRecord r;
     vector<FILE *> fpp;
     shared_ptr<HeadReader> headreader;
     vector<int> rind;
@@ -1505,9 +1505,9 @@ private:
     vector<vector<int> *> offarrs;
     int offsize;
     vector<int> g_offset;
-    
+
     vector<bool> required;
-    
+
     inline bool getRequired(int i){
         return required[i];
     }
@@ -1517,7 +1517,7 @@ public:
             _begin), end(_end + 1) {
         headreader = _headreader;
         ind = 0;
-        r = new GenericRecord(c.value<GenericRecord>());
+        r = GenericRecord(c.value<GenericRecord>());
         ifstream file_in;
         int colnum = end - begin;
         fpp = vector<FILE *>(colnum);
@@ -1538,17 +1538,17 @@ public:
             fseek(fpp[i - begin], headreader->getColumns()[i].getOffset(), SEEK_SET);
             rcounts[i - begin] = headreader->getColumns()[i].getBlock(bind[i - begin]).getRowcount();
             blockreaders[i - begin] = new Block(fpp[i - begin], 0L, 0, blocksize);
-            if (r->schema()->isRequired(i - begin))
+            if (r.schema()->isRequired(i - begin))
                 blockreaders[i - begin]->loadFromFile();
             else
                 blockreaders[i - begin]->loadFromFile(rcounts[i - begin]);
-            if (r->schema()->leafAt(i - begin)->type() == CORES_STRING) {
+            if (r.schema()->leafAt(i - begin)->type() == CORES_STRING) {
                 offarrs[i - begin] = blockreaders[i - begin]->initString(offsize);
             }
         }
 
         for (int i = 0; i < end-begin; ++i) {
-            required.push_back(r->schema()->isRequired(i));
+            required.push_back(r.schema()->isRequired(i));
         }
     }
 
@@ -1630,27 +1630,27 @@ public:
                                           headreader->getColumn(i + begin).getBlock(bind[i]).getRowcount());
                 rcounts[i] = headreader->getColumns()[i + begin].getBlock(bind[i]).getRowcount();
                 rind[i] = r_ind;
-                if (r->schema()->leafAt(i)->type() == CORES_STRING) {
+                if (r.schema()->leafAt(i)->type() == CORES_STRING) {
                     offarrs[i] = blockreaders[i]->initString(offsize);
                 }
             }
 
             if (!blockreaders[i]->isvalid(rind[i])) {
-                r->fieldAt(i) = GenericDatum();
+                r.fieldAt(i) = GenericDatum();
                 cout << "||" << " ";
                 continue;
             }
-            switch (r->schema()->leafAt(i)->type()) {
+            switch (r.schema()->leafAt(i)->type()) {
                 case CORES_LONG: {
                     int64_t tmp = blockreaders[i]->get<int64_t>(blockreaders[i]->getValidOff(rind[i]));
-                    r->fieldAt(i) = tmp;
+                    r.fieldAt(i) = tmp;
                     cout << tmp << " ";
                     rind[i]++;
                     break;
                 }
                 case CORES_INT: {
                     int tmp = blockreaders[i]->get<int>(blockreaders[i]->getValidOff(rind[i]));
-                    r->fieldAt(i) = tmp;
+                    r.fieldAt(i) = tmp;
                     cout << tmp << " ";
                     rind[i]++;
                     break;
@@ -1661,21 +1661,21 @@ public:
                     }
                     int tmpi = (*offarrs[i])[blockreaders[i]->getValidOff(rind[i])];
                     char *tmp = blockreaders[i]->getoffstring(tmpi);
-                    r->fieldAt(i) = tmp;
+                    r.fieldAt(i) = tmp;
                     cout << tmp << " ";
                     rind[i]++;
                     break;
                 }
                 case CORES_FLOAT: {
                     float tmp = blockreaders[i]->get<float>(blockreaders[i]->getValidOff(rind[i]));
-                    r->fieldAt(i) = tmp;
+                    r.fieldAt(i) = tmp;
                     cout << tmp << " ";
                     rind[i]++;
                     break;
                 }
                 case CORES_BYTES: {
                     char tmp = blockreaders[i]->get<char>(blockreaders[i]->getValidOff(rind[i]));
-                    r->fieldAt(i) = tmp;
+                    r.fieldAt(i) = tmp;
                     cout << tmp << " ";
                     rind[i]++;
                     break;
@@ -1701,26 +1701,26 @@ public:
                     else
                         blockreaders[i]->loadFromFile(rcounts[i]);
                     rind[i] = 0;
-                    if (r->schema()->leafAt(i)->type() == CORES_STRING) {
+                    if (r.schema()->leafAt(i)->type() == CORES_STRING) {
                         offarrs[i] = blockreaders[i]->initString(offsize);
                     }
                 }
                 if (!getRequired(i) && !blockreaders[i]->isvalid(rind[i])) {
-                    r->fieldAt(i) = GenericDatum();
+                    r.fieldAt(i) = GenericDatum();
                     rind[i]++;
                     continue;
                 }
-                switch (r->schema()->leafAt(i)->type()) {
+                switch (r.schema()->leafAt(i)->type()) {
                     case CORES_LONG: {
                         int64_t tmp = blockreaders[i]->next<int64_t>();
-                        r->fieldAt(i) = tmp;
+                        r.fieldAt(i) = tmp;
 //                        cout << tmp << " ";
                         rind[i]++;
                         break;
                     }
                     case CORES_INT: {
                         int tmp = blockreaders[i]->next<int>();
-                        r->fieldAt(i) = tmp;
+                        r.fieldAt(i) = tmp;
 //                        cout << tmp << " ";
                         rind[i]++;
                         break;
@@ -1728,21 +1728,21 @@ public:
                     case CORES_STRING: {
                         int tmpi = (*offarrs[i])[rind[i]];
                         char *tmp = blockreaders[i]->getoffstring(tmpi);
-                        r->fieldAt(i) = tmp;
+                        r.fieldAt(i) = tmp;
 //                        cout << tmp << " ";
                         rind[i]++;
                         break;
                     }
                     case CORES_FLOAT: {
                         float tmp = blockreaders[i]->next<float>();
-                        r->fieldAt(i) = tmp;
+                        r.fieldAt(i) = tmp;
 //                        cout << tmp << " ";
                         rind[i]++;
                         break;
                     }
                     case CORES_BYTES: {
                         char tmp = blockreaders[i]->next<char>();
-                        r->fieldAt(i) = tmp;
+                        r.fieldAt(i) = tmp;
 //                        cout << tmp << " ";
                         rind[i]++;
                         break;
@@ -1773,7 +1773,7 @@ public:
                 flag = true;
             }
             if (flag) {
-                if (!r->schema()->isRequired(i))
+                if (!r.schema()->isRequired(i))
                     blockreaders[i]->skipload(
                             (int64_t) headreader->getColumn(i + begin).getOffset() + blocksize * bind[i],
                             headreader->getColumn(i + begin).getBlock(bind[i]).getRowcount());
@@ -1781,30 +1781,30 @@ public:
                     blockreaders[i]->skipload(
                             (int64_t) headreader->getColumn(i + begin).getOffset() + blocksize * bind[i], 0);
                 rcounts[i] = headreader->getColumns()[i + begin].getBlock(bind[i]).getRowcount();
-                if (r->schema()->leafAt(i)->type() == CORES_STRING) {
+                if (r.schema()->leafAt(i)->type() == CORES_STRING) {
                     offarrs[i] = blockreaders[i]->initString(offsize);
                 }
             }
-            if (!r->schema()->isRequired(i) && !blockreaders[i]->isvalid(rind[i])) {
-                r->fieldAt(i) = GenericDatum();
+            if (!r.schema()->isRequired(i) && !blockreaders[i]->isvalid(rind[i])) {
+                r.fieldAt(i) = GenericDatum();
                 rind[i]++;
                 continue;
-            } else if (!r->schema()->isRequired(i)) {
+            } else if (!r.schema()->isRequired(i)) {
                 tmpind = blockreaders[i]->getValidOff(rind[i]);
             } else {
                 tmpind = rind[i];
             }
-            switch (r->schema()->leafAt(i)->type()) {
+            switch (r.schema()->leafAt(i)->type()) {
                 case CORES_LONG: {
                     int64_t tmp = blockreaders[i]->get<int64_t>(tmpind);
-                    r->fieldAt(i) = tmp;
+                    r.fieldAt(i) = tmp;
                     cout << tmp << " ";
                     rind[i]++;
                     break;
                 }
                 case CORES_INT: {
                     int tmp = blockreaders[i]->get<int>(tmpind);
-                    r->fieldAt(i) = tmp;
+                    r.fieldAt(i) = tmp;
                     cout << tmp << " ";
                     rind[i]++;
                     break;
@@ -1812,21 +1812,21 @@ public:
                 case CORES_STRING: {
                     int tmpi = (*offarrs[i])[tmpind];
                     char *tmp = blockreaders[i]->getoffstring(tmpi);
-                    r->fieldAt(i) = tmp;
+                    r.fieldAt(i) = tmp;
                     cout << tmp << " ";
                     rind[i]++;
                     break;
                 }
                 case CORES_FLOAT: {
                     float tmp = blockreaders[i]->get<float>(tmpind);
-                    r->fieldAt(i) = tmp;
+                    r.fieldAt(i) = tmp;
                     cout << tmp << " ";
                     rind[i]++;
                     break;
                 }
                 case CORES_BYTES: {
                     char tmp = blockreaders[i]->get<char>(tmpind);
-                    r->fieldAt(i) = tmp;
+                    r.fieldAt(i) = tmp;
                     cout << tmp << " ";
                     rind[i]++;
                     break;
@@ -1843,25 +1843,25 @@ public:
 
     void printRecord() {
         for (int i = 0; i < end - begin; ++i) {
-            switch (r->schema()->leafAt(i)->type()) {
+            switch (r.schema()->leafAt(i)->type()) {
                 case CORES_LONG: {
-                    cout << r->fieldAt(i).value<int64_t>() << " ";
+                    cout << r.fieldAt(i).value<int64_t>() << " ";
                     break;
                 }
                 case CORES_INT: {
-                    cout << r->fieldAt(i).value<int>() << " ";
+                    cout << r.fieldAt(i).value<int>() << " ";
                     break;
                 }
                 case CORES_STRING: {
-                    cout << r->fieldAt(i).value<const char *>() << " ";
+                    cout << r.fieldAt(i).value<const char *>() << " ";
                     break;
                 }
                 case CORES_FLOAT: {
-                    cout << r->fieldAt(i).value<float>() << " ";
+                    cout << r.fieldAt(i).value<float>() << " ";
                     break;
                 }
                 case CORES_BYTES: {
-                    cout << r->fieldAt(i).value<char>() << " ";
+                    cout << r.fieldAt(i).value<char>() << " ";
                     break;
                 }
                 case CORES_ARRAY: {
@@ -1872,7 +1872,7 @@ public:
     }
 
     void initOffset(int aInd) {
-        if (r->schema()->leafAt(aInd)->type() != CORES_ARRAY) {
+        if (r.schema()->leafAt(aInd)->type() != CORES_ARRAY) {
             cout << "arr ind error" << endl;
             return;
         }
@@ -1903,15 +1903,15 @@ public:
     }
 
     void setArr(const vector<GenericDatum> &rs, int i) {
-        if (r->schema()->leafAt(i)->type() == CORES_ARRAY)
-            r->fieldAt(i).value<GenericArray>().value() = rs;
+        if (r.schema()->leafAt(i)->type() == CORES_ARRAY)
+            r.fieldAt(i).value<GenericArray>().value() = rs;
         else
             cout << "this is not a arr" << endl;
     }
 
     vector<GenericDatum> &getArr(int i) {
-        if (r->schema()->leafAt(i)->type() == CORES_ARRAY)
-            return r->fieldAt(i).value<GenericArray>().value();
+        if (r.schema()->leafAt(i)->type() == CORES_ARRAY)
+            return r.fieldAt(i).value<GenericArray>().value();
         cout << "this is not a arr" << endl;
     }
 
@@ -2249,7 +2249,7 @@ public:
     }
 */
     GenericRecord &getRecord() {
-        return *r;
+        return r;
     }
 };
 
