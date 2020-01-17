@@ -1507,6 +1507,7 @@ private:
     vector<int> g_offset;
 
     vector<bool> required;
+    vector<Type> types;
 
     inline bool getRequired(int i){
         return required[i];
@@ -1548,6 +1549,7 @@ public:
 
         for (int i = 0; i < end-begin; ++i) {
             required.push_back(r.schema()->isRequired(i));
+            types.push_back(r.schema()->leafAt(i)->type());
         }
     }
 
@@ -1687,7 +1689,6 @@ public:
     }
 
     bool next() {
-        if (bind[0] < headreader->getColumn(begin).getblockCount()) {
             for (int i = 0; i < end - begin; ++i) {
                 if (rind[i] == rcounts[i]) {
                     bind[i]++;
@@ -1708,7 +1709,7 @@ public:
                     rind[i]++;
                     continue;
                 }
-                switch (r.schema()->leafAt(i)->type()) {
+                switch (types[i]) {
                     case CORES_LONG: {
                         int64_t tmp = blockreaders[i]->next<int64_t>();
                         r.fieldAt(i) = tmp;
@@ -1753,9 +1754,6 @@ public:
                 }
             }
             return true;
-        } else {
-            return false;
-        }
     }
 
     bool next(int n) {

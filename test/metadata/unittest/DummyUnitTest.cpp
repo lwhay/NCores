@@ -298,11 +298,12 @@ int requiredReader(bool flag, char *datafile = "./tmpresult/fileout.dat",
         indp++;
         int64_t key=fr0.getRecord().fieldAt(0).value<int64_t >();
         int i = fr0.getArrsize();
+        pss.resize(i);
         for (int j = 0; j < i; ++j) {
             fr1.next();
 //            cout<<endl;
             indps++;
-            pss.push_back(GenericDatum(fr1.getRecord()));
+            pss[j]=fr1.getRecord();
         }
 //        cout<<endl;
         if (pss.size() != 0)
