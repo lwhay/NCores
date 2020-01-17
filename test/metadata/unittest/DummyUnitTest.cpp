@@ -322,12 +322,12 @@ int requiredReader(bool flag, char *datafile = "./tmpresult/fileout.dat",
 
 }
 
-void SETUP() {
+void SETUP(int argc, char **argv) {
     system("mkdir layer0");
     system("mkdir layer1");
     system("mkdir tmpresult");
 
-    requiredWriter("/kolla/asterixdb/tpch_2_16_1/dbgen/orders.tbl","/kolla/asterixdb/tpch_2_16_1/dbgen/lineitem.tbl");
+    requiredWriter(argv[1],argv[2]);
 }
 
 TEST(SchemaTest, DummyTest) {
@@ -342,7 +342,7 @@ void TEARDOWN() {
 }
 
 int main(int argc, char **argv) {
-//    SETUP();
+//    SETUP(argc,argv);
     ::testing::InitGoogleTest(&argc, argv);
     int ret = RUN_ALL_TESTS();
     TEARDOWN();

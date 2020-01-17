@@ -93,10 +93,6 @@ public:
         this->blocks.assign(_blocks.begin(), _blocks.begin() + _blocks.size());
     }
 
-    vector<BlockReader> getBlocks() {
-        return blocks;
-    }
-
     BlockReader &getBlock(int b) {
         return blocks[b];
     }
@@ -1509,6 +1505,12 @@ private:
     vector<vector<int> *> offarrs;
     int offsize;
     vector<int> g_offset;
+    
+    vector<bool> required;
+    
+    inline bool getRequired(int i){
+        return required[i];
+    }
 
 public:
     fileReader(GenericDatum c, shared_ptr<HeadReader> _headreader, int _begin, int _end, char *resultfile) : begin(
@@ -1543,6 +1545,10 @@ public:
             if (r->schema()->leafAt(i - begin)->type() == CORES_STRING) {
                 offarrs[i - begin] = blockreaders[i - begin]->initString(offsize);
             }
+        }
+
+        for (int i = 0; i < end-begin; ++i) {
+            required.push_back(r->schema()->isRequired(i));
         }
     }
 
@@ -1689,8 +1695,8 @@ public:
                     bind[i]++;
                     if (bind[i] == headreader->getColumn(begin + i).getblockCount())
                         return false;
-                    rcounts[i] = headreader->getColumns()[i + begin].getBlock(bind[i]).getRowcount();
-                    if (r->schema()->isRequired(i))
+                    rcounts[i] = headreader->getColumn(i + begin).getBlock(bind[i]).getRowcount();
+                    if (getRequired(i))
                         blockreaders[i]->loadFromFile();
                     else
                         blockreaders[i]->loadFromFile(rcounts[i]);
@@ -1699,7 +1705,7 @@ public:
                         offarrs[i] = blockreaders[i]->initString(offsize);
                     }
                 }
-                if (!r->schema()->isRequired(i) && !blockreaders[i]->isvalid(rind[i])) {
+                if (!getRequired(i) && !blockreaders[i]->isvalid(rind[i])) {
                     r->fieldAt(i) = GenericDatum();
                     rind[i]++;
                     continue;
