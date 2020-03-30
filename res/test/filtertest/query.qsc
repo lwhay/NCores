@@ -1,76 +1,76 @@
 {
-                  "type": "record",
-                  "name": "Lineitem",
-                  "fields": [
-                    {
-                      "name": "l_partkey",
-                      "clause": "filter",
-                      "body": {
-                        "operator": "lt",
-                            "operand": {
-                              "type": "long",
-                              "value": 60
-                            }
-                      }
-                    },
-                    {
-                      "name": "l_shipdate",
-                      "clause": "filter",
-                      "body": {
-                        "composite": "conjunctive",
-                        "condition": [
-                          {
-                            "operator": "lt",
-                            "operand": {
-                              "type": "string",
-                              "value": "1997"
-                            }
-                          },
-                          {
-                            "operator": "ge",
-                            "operand": {
-                              "type": "string",
-                              "value": "1996"
-                            }
-                          }
-                        ]
-                      }
-                    },
-                    {
-                      "name": "l_commitdate",
-                      "clause": "filter",
-                      "body": {
-                        "composite": "disjunctive",
-                        "condition": [
-                          {
-                            "composite": "conjunctive",
-                            "condition": [
-                              {
-                                "operator": "lt",
-                                "operand": {
-                                  "type": "string",
-                                  "value": "1992"
-                                }
-                              },
-                              {
-                                "operator": "ge",
-                                "operand": {
-                                  "type": "string",
-                                  "value": "1993"
-                                }
-                              }
-                            ]
-                          },
-                          {
-                            "operator": "ge",
-                            "operand": {
-                              "type": "string",
-                              "value": "1995"
-                            }
-                          }
-                        ]
-                      }
-                    }
-                  ]
+    "type": "record",
+    "name": "Lineitem",
+    "fields": [
+        {
+        "name": "l_partkey",
+        "clause": "filter",
+        "body": {
+            "operator": "lt",
+            "operand": {
+                "type": "long",
+                "value": 60
                 }
-                
+            }
+        },
+        {
+        "name": "l_shipdate",
+        "clause": "filter",
+        "body": {
+            "composite": "conjunctive",
+            "condition": [
+                {
+                "operator": "lt",
+                "operand": {
+                    "type": "string",
+                    "value": "1998-12-01"
+                }
+                },
+                {
+                "operator": "ge",
+                "operand": {
+                    "type": "string",
+                    "value": "1996-01-01"
+                }
+                }
+            ]
+            }
+        },
+        {
+        "name": "l_commitdate",
+        "clause": "filter",
+        "body": {
+            "composite": "disjunctive",
+            "condition": [
+                {
+                "composite": "conjunctive",
+                "condition": [
+                    {
+                    "operator": "lt",
+                    "operand": {
+                        "type": "string",
+                        "value": "1992"
+                    }
+                    },
+                    {
+                    "operator": "ge",
+                    "operand": {
+                        "type": "string",
+                        "value": "1993"
+                    }
+                    }
+                ]
+                },
+                {
+                "operator": "ge",
+                "operand": {
+                    "type": "string",
+                    "value": "1995"
+                    }
+                }
+            ]
+            }
+        }
+]
+}
+        

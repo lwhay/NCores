@@ -219,6 +219,7 @@ struct function_<char *> {
         return (char *) _cache + index;
     }
 
+
 //    static int _append()(void* _cache,int& _count,int& _cursor,int _limit,int _offset,char* value) {
 //        if (_cursor + strlen(value) >= _limit) {
 ////            appendToFile();
@@ -239,6 +240,13 @@ struct function_<char *> {
         char *tmp = (char *) _cache + _count;
         _count += strlen(tmp) + 1;
         return tmp;
+    }
+};
+
+template<>
+struct function_<const char *>{
+    static const char *_get(void *_cache, int idx) {
+        return (const char *) _cache + idx;
     }
 };
 
@@ -324,7 +332,7 @@ public:
         fread(_cache, sizeof(char), _limit, _fp);
     }
 
-    void skipload(int64_t offset, int rowcount) {
+    void skipload(int64_t offset, int rowcount=0) {
         _cursor = ceil((double) rowcount / 8);
         _count = 0;
         fseek(_fp, offset, SEEK_SET);
@@ -336,6 +344,7 @@ public:
     }
 
     int getValidOff(int off) {
+        if(_cursor==0) return off;
         int count = 0;
         for (int i = 0; i < off / 8; ++i) {
             for (int j = 0; j < 8; ++j) {

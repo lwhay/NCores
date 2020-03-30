@@ -12,6 +12,7 @@
 #include "string"
 #include "iostream"
 #include "ColumnarData.h"
+#include <assert.h>
 
 using namespace std;
 
@@ -89,6 +90,10 @@ public:
         return offset;
     }
 
+    long getRowcount(){
+        return blocks.back().getOffset();
+    }
+
     void setBlocks(vector<BlockReader> _blocks) {
         this->blocks.assign(_blocks.begin(), _blocks.begin() + _blocks.size());
     }
@@ -111,6 +116,31 @@ public:
 
     int findOff(int off, int &roff) {
         int low = 1, high = blockCount - 1, middle = (low + high) / 2;
+
+        if (off < blocks[0].getOffset()) {
+            roff = off;
+            return 0;
+        }
+        while (low < high) {
+            middle = (low + high) / 2;
+            if (off < blocks[middle].getOffset() && off >= blocks[middle - 1].getOffset()) {
+                roff = off - blocks[middle - 1].getOffset();
+                return middle;
+            } else if (off < blocks[middle - 1].getOffset()) {
+                high = middle;
+            } else if (off >= blocks[middle].getOffset()) {
+                low = middle + 1;
+            }
+        }
+        if (off < blocks[middle].getOffset() && off >= blocks[middle - 1].getOffset()) {
+            roff = off - blocks[middle - 1].getOffset();
+            return middle;
+        }
+        return -1;
+    }
+
+    int findOff(int bgn, int off, int &roff) {
+        int low = bgn, high = blockCount - 1, middle = (low + high) / 2;
 
         if (off < blocks[0].getOffset()) {
             roff = off;
@@ -1509,13 +1539,13 @@ private:
     vector<bool> required;
     vector<Type> types;
 
-    inline bool getRequired(int i){
+    inline bool getRequired(int i) {
         return required[i];
     }
 
 public:
     fileReader(GenericDatum c, shared_ptr<HeadReader> _headreader, int _begin, int _end, char *resultfile) : begin(
-            _begin), end(_end + 1),r(GenericRecord(c.value<GenericRecord>())) {
+            _begin), end(_end + 1), r(GenericRecord(c.value<GenericRecord>())) {
         headreader = _headreader;
         ind = 0;
         ifstream file_in;
@@ -1547,39 +1577,12 @@ public:
             }
         }
 
-        for (int i = 0; i < end-begin; ++i) {
+        for (int i = 0; i < end - begin; ++i) {
             required.push_back(r.schema()->isRequired(i));
             types.push_back(r.schema()->leafAt(i)->type());
         }
     }
 
-
-    fileReader(GenericDatum c, shared_ptr<HeadReader> _headreader, int _begin, int _end, char *resultfile, bool flag)
-            : begin(
-            _begin), end(_end + 1),r(GenericRecord(c.value<GenericRecord>())) {
-        headreader = _headreader;
-        ind = 0;
-        ifstream file_in;
-        int colnum = end - begin;
-        fpp = vector<FILE *>(colnum);
-        rind = vector<int>(colnum);
-        bind = vector<int>(colnum);
-        rcounts = vector<int>(colnum);
-        blockreaders = vector<Block *>(colnum);
-        offarrs = vector<vector<int> *>(colnum);
-        blocksize = headreader->getBlockSize();
-        for (int i = begin; i < end; ++i) {
-            fpp[i - begin] = fopen(resultfile, "rb");
-            fseek(fpp[i - begin], headreader->getColumns()[i].getOffset(), SEEK_SET);
-            rcounts[i - begin] = headreader->getColumns()[i].getBlock(bind[i - begin]).getRowcount();
-            blockreaders[i - begin] = new Block(fpp[i - begin], 0L, 0, blocksize);
-            blockreaders[i - begin]->loadFromFile(rcounts[i - begin]);
-        }
-        if (blocksize < 1 << 8) offsize = 1;
-        else if (blocksize < 1 << 16) offsize = 2;
-        else if (blocksize < 1 << 24) offsize = 3;
-        else if (blocksize < 1 << 32) offsize = 4;
-    }
 
 /*
 //    fileReader(GenericDatum c, int _blocksize) {
@@ -1611,30 +1614,49 @@ public:
 //    }
 */
 
+    template<typename type>
+    type skipColRead(int off, int i) {
+        if (off < headreader->getColumn(i + begin).getBlock(bind[i]).getOffset()) {
+            rind[i] = (bind[i] == 0) ? off :
+                    off - headreader->getColumn(i + begin).getBlock(bind[i] - 1).getOffset();
+        } else {
+            bind[i] = headreader->getColumn(i + begin).findOff(bind[i]+1, off, rind[i]);
+            blockreaders[i]->skipload(headreader->getColumn(i + begin).getOffset() + blocksize * bind[i]);
+            rcounts[i] = headreader->getColumn(i + begin).getBlock(bind[i]).getRowcount();
+            if (r.schema()->leafAt(i)->type() == CORES_STRING) {
+                offarrs[i] = blockreaders[i]->initString(offsize);
+            }
+        }
+        if(r.schema()->leafAt(i)->type()==CORES_STRING){
+            if (rind[i] == 0) {
+                offarrs[i] = blockreaders[i]->initString(offsize);
+            }
+            int tmpi = (*offarrs[i])[blockreaders[i]->getValidOff(rind[i])];
+            return blockreaders[i]->get<type>(tmpi);
+        }
+        return  blockreaders[i]->get<type>(blockreaders[i]->getValidOff(rind[i]));
+
+    }
+
     void skipread(int off) {
         for (int i = 0; i < end - begin; ++i) {
-            int r_ind, b_ind, vr_ind;
+            int vr_ind;
             int tmp = headreader->getColumn(i + begin).getBlock(1).getSize();
-            if (off < headreader->getColumn(i + begin).getBlock(bind[i]).getOffset()) {
-                if (bind[i] == 0) {
-                    r_ind = off;
-                    rind[i] = r_ind;
-                } else {
-                    r_ind = off - headreader->getColumn(i + begin).getBlock(bind[i] - 1).getOffset();
-                    rind[i] = r_ind;
-                }
-            } else {
-                b_ind = headreader->getColumn(i + begin).findOff(off, r_ind);
-                bind[i] = b_ind;
-                blockreaders[i]->skipload(headreader->getColumn(i + begin).getOffset() + blocksize * b_ind,
-                                          headreader->getColumn(i + begin).getBlock(bind[i]).getRowcount());
+            if (off < headreader->getColumn(i + begin).getBlock(bind[i]).getOffset())
+                rind[i] = (bind[i] == 0) ? off :
+                          off - headreader->getColumn(i + begin).getBlock(bind[i] - 1).getOffset();
+            else {
+                bind[i] = headreader->getColumn(i + begin).findOff(bind[i]+1, off, rind[i]);
+                blockreaders[i]->skipload(headreader->getColumn(i + begin).getOffset() + blocksize * bind[i],
+                        !r.schema()->isRequired(i)?
+                                          headreader->getColumn(i + begin).getBlock(bind[i]).getRowcount():0);
                 rcounts[i] = headreader->getColumns()[i + begin].getBlock(bind[i]).getRowcount();
-                rind[i] = r_ind;
                 if (r.schema()->leafAt(i)->type() == CORES_STRING) {
                     offarrs[i] = blockreaders[i]->initString(offsize);
                 }
             }
 
+            if (!r.schema()->isRequired(i))
             if (!blockreaders[i]->isvalid(rind[i])) {
                 r.fieldAt(i) = GenericDatum();
                 cout << "||" << " ";
@@ -1644,15 +1666,11 @@ public:
                 case CORES_LONG: {
                     int64_t tmp = blockreaders[i]->get<int64_t>(blockreaders[i]->getValidOff(rind[i]));
                     r.fieldAt(i) = tmp;
-                    cout << tmp << " ";
-                    rind[i]++;
                     break;
                 }
                 case CORES_INT: {
                     int tmp = blockreaders[i]->get<int>(blockreaders[i]->getValidOff(rind[i]));
                     r.fieldAt(i) = tmp;
-                    cout << tmp << " ";
-                    rind[i]++;
                     break;
                 }
                 case CORES_STRING: {
@@ -1662,98 +1680,108 @@ public:
                     int tmpi = (*offarrs[i])[blockreaders[i]->getValidOff(rind[i])];
                     char *tmp = blockreaders[i]->getoffstring(tmpi);
                     r.fieldAt(i) = tmp;
-                    cout << tmp << " ";
-                    rind[i]++;
                     break;
                 }
                 case CORES_FLOAT: {
                     float tmp = blockreaders[i]->get<float>(blockreaders[i]->getValidOff(rind[i]));
                     r.fieldAt(i) = tmp;
-                    cout << tmp << " ";
-                    rind[i]++;
                     break;
                 }
                 case CORES_BYTES: {
                     char tmp = blockreaders[i]->get<char>(blockreaders[i]->getValidOff(rind[i]));
                     r.fieldAt(i) = tmp;
-                    cout << tmp << " ";
-                    rind[i]++;
                     break;
                 }
-                case CORES_ARRAY: {
-//                        arsize = g_offset[rind[i]];
-//                        rind[i]++;
-                }
+                default:assert(true);
+            }
+        }
+    }
+
+    void fresh(){
+        int colnum = end - begin;
+        rind = vector<int>(colnum,0);
+        bind = vector<int>(colnum,0);
+        rcounts = vector<int>(colnum,0);
+        for (int i = begin; i < end; ++i) {
+            fseek(fpp[i - begin], headreader->getColumns()[i].getOffset(), SEEK_SET);
+            rcounts[i - begin] = headreader->getColumns()[i].getBlock(bind[i - begin]).getRowcount();
+            blockreaders[i - begin] = new Block(fpp[i - begin], 0L, 0, blocksize);
+            if (r.schema()->isRequired(i - begin))
+                blockreaders[i - begin]->loadFromFile();
+            else
+                blockreaders[i - begin]->loadFromFile(rcounts[i - begin]);
+            if (r.schema()->leafAt(i - begin)->type() == CORES_STRING) {
+                offarrs[i - begin] = blockreaders[i - begin]->initString(offsize);
             }
         }
     }
 
     bool next() {
-            for (int i = 0; i < end - begin; ++i) {
-                if (rind[i] == rcounts[i]) {
-                    bind[i]++;
-                    if (bind[i] == headreader->getColumn(begin + i).getblockCount())
-                        return false;
-                    rcounts[i] = headreader->getColumn(i + begin).getBlock(bind[i]).getRowcount();
-                    if (getRequired(i))
-                        blockreaders[i]->loadFromFile();
-                    else
-                        blockreaders[i]->loadFromFile(rcounts[i]);
-                    rind[i] = 0;
-                    if (r.schema()->leafAt(i)->type() == CORES_STRING) {
-                        offarrs[i] = blockreaders[i]->initString(offsize);
-                    }
-                }
-                if (!getRequired(i) && !blockreaders[i]->isvalid(rind[i])) {
-                    r.fieldAt(i) = GenericDatum();
-                    rind[i]++;
-                    continue;
-                }
-                switch (types[i]) {
-                    case CORES_LONG: {
-                        int64_t tmp = blockreaders[i]->next<int64_t>();
-                        r.fieldAt(i) = tmp;
-//                        cout << tmp << " ";
-                        rind[i]++;
-                        break;
-                    }
-                    case CORES_INT: {
-                        int tmp = blockreaders[i]->next<int>();
-                        r.fieldAt(i) = tmp;
-//                        cout << tmp << " ";
-                        rind[i]++;
-                        break;
-                    }
-                    case CORES_STRING: {
-                        int tmpi = (*offarrs[i])[rind[i]];
-                        char *tmp = blockreaders[i]->getoffstring(tmpi);
-                        r.fieldAt(i) = tmp;
-//                        cout << tmp << " ";
-                        rind[i]++;
-                        break;
-                    }
-                    case CORES_FLOAT: {
-                        float tmp = blockreaders[i]->next<float>();
-                        r.fieldAt(i) = tmp;
-//                        cout << tmp << " ";
-                        rind[i]++;
-                        break;
-                    }
-                    case CORES_BYTES: {
-                        char tmp = blockreaders[i]->next<char>();
-                        r.fieldAt(i) = tmp;
-//                        cout << tmp << " ";
-                        rind[i]++;
-                        break;
-                    }
-                    case CORES_ARRAY: {
-                        arsize = blockreaders[i]->next<int>();
-                        rind[i]++;
-                        break;
-                    }
+        for (int i = 0; i < end - begin; ++i) {
+            if (rind[i] == rcounts[i]) {
+                bind[i]++;
+                if (bind[i] == headreader->getColumn(begin + i).getblockCount())
+                    return false;
+                rcounts[i] = headreader->getColumn(i + begin).getBlock(bind[i]).getRowcount();
+                if (getRequired(i))
+                    blockreaders[i]->loadFromFile();
+                else
+                    blockreaders[i]->loadFromFile(rcounts[i]);
+                rind[i] = 0;
+                if (r.schema()->leafAt(i)->type() == CORES_STRING) {
+                    offarrs[i] = blockreaders[i]->initString(offsize);
                 }
             }
-            return true;
+            if (!getRequired(i) && !blockreaders[i]->isvalid(rind[i])) {
+                r.fieldAt(i) = GenericDatum();
+                rind[i]++;
+                continue;
+            }
+            switch (types[i]) {
+                case CORES_LONG: {
+                    int64_t tmp = blockreaders[i]->next<int64_t>();
+                    r.fieldAt(i) = tmp;
+//                        cout << tmp << " ";
+                    rind[i]++;
+                    break;
+                }
+                case CORES_INT: {
+                    int tmp = blockreaders[i]->next<int>();
+                    r.fieldAt(i) = tmp;
+//                        cout << tmp << " ";
+                    rind[i]++;
+                    break;
+                }
+                case CORES_STRING: {
+                    int tmpi = (*offarrs[i])[rind[i]];
+                    char *tmp = blockreaders[i]->getoffstring(tmpi);
+                    r.fieldAt(i) = tmp;
+//                        cout << tmp << " ";
+                    rind[i]++;
+                    break;
+                }
+                case CORES_FLOAT: {
+                    float tmp = blockreaders[i]->next<float>();
+                    r.fieldAt(i) = tmp;
+//                        cout << tmp << " ";
+                    rind[i]++;
+                    break;
+                }
+                case CORES_BYTES: {
+                    char tmp = blockreaders[i]->next<char>();
+                    r.fieldAt(i) = tmp;
+//                        cout << tmp << " ";
+                    rind[i]++;
+                    break;
+                }
+                case CORES_ARRAY: {
+                    arsize = blockreaders[i]->next<int>();
+                    rind[i]++;
+                    break;
+                }
+            }
+        }
+        return true;
     }
 
     bool next(int n) {
