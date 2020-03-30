@@ -84,6 +84,7 @@ public:
 };
 
 
+
 void requiredfilesMerge(string file1, string file2, string path) {
     cout << "file1" << endl;
     ifstream file_1;
@@ -206,14 +207,17 @@ void requiredWriter(char *tblfile1 = "../res/test/requiredtest/orders.tbl",
     string ll;
     vector<vector<GenericDatum>> vl;
     vector<GenericDatum> vo;
+    cout<<"vl vo"<< sizeof(vl)<<" "<< sizeof(vo)<<endl;
     cout<<"line reading"<<endl;
     while (std::getline(lf, ll)) {
         rrs[1].readLine(ll);
         GenericRecord tmp = rrs[1].getRecord();
+//        cout<<"GenericRecord"<< sizeof(tmp)<<endl;
         int64_t orderkey = tmp.fieldAt(0).value<int64_t>();
         if (orderkey > vl.size()) {
             vl.resize(orderkey, vo);
         }
+//        cout<<"orderkey"<< orderkey<<" "<<(vl.capacity())<<" "<<(vl.back().capacity())<<endl;
         vl[orderkey - 1].push_back(GenericDatum(tmp));
     }
     fstream of(tblfile1, ios::in);
@@ -231,6 +235,7 @@ void requiredWriter(char *tblfile1 = "../res/test/requiredtest/orders.tbl",
         vl[orderkey - 1].clear();
         vo.push_back(GenericDatum(tmp));
     }
+    cout<<indpsl<<endl;
     BatchFileWriter file0(rs[0], result0, blocksize,true);
     BatchFileWriter file1(rs[1], result1, blocksize,true);
 
@@ -240,6 +245,7 @@ void requiredWriter(char *tblfile1 = "../res/test/requiredtest/orders.tbl",
         for (auto iter1:iter0.value<GenericRecord>().fieldAt(9).value<GenericArray>().value()) {
             file1.write(iter1.value<GenericRecord>());
         }
+        iter0.value<GenericRecord>().fieldAt(9).value<GenericArray>().value().clear();
     }
 
 
@@ -255,19 +261,18 @@ int requiredReader(bool flag, char *datafile = "./tmpresult/fileout.dat",
                    char *schema = "../res/test/requiredtest/nest.avsc") {
     SchemaReader sr(schema, true);
     ValidSchema *vschema = sr.read();
-    GenericDatum c = GenericDatum(vschema->root());
+    GenericDatum tmpGD = GenericDatum(vschema->root());
     vector<GenericRecord> rs;
     vector<int> bs;
-    GenericRecord r(c.value<GenericRecord>());
-    rs.push_back((r));
+    GenericRecord r(tmpGD.value<GenericRecord>());
+    rs.push_back(tmpGD.value<GenericRecord>());
     bs.push_back(0);
     for (int j = 0; j < r.fieldCount(); ++j) {
         if (r.schema()->leafAt(j)->type() == CORES_ARRAY) {
-            c = GenericDatum(r.fieldAt(j).value<GenericArray>().schema()->leafAt(0));
-            r = c.value<GenericRecord>();
-            rs.push_back((r));
+            tmpGD = GenericDatum(r.fieldAt(j).value<GenericArray>().schema()->leafAt(0));
+            r = tmpGD.value<GenericRecord>();
+            rs.push_back(tmpGD.value<GenericRecord>());
             bs.push_back(bs.back() + j + 1);
-            cout << bs.back() << endl;
             j = 0;
         }
     }
@@ -323,6 +328,46 @@ int requiredReader(bool flag, char *datafile = "./tmpresult/fileout.dat",
 
 }
 
+void memtest(char *tblfile1 = "../res/test/requiredtest/orders.tbl",
+                    char *tblfile2 = "../res/test/requiredtest/lineitem.tbl",
+                    char *result0 = "./layer0", char *result1 = "./layer1",
+                    char *result = "./tmpresult", char *schema = "../res/test/requiredtest/nest.avsc",
+                    int blocksize = 1024) {
+    SchemaReader sr(schema, true);
+    ValidSchema *vschema = sr.read();
+    GenericDatum c = GenericDatum(vschema->root());
+    vector<GenericRecord> rs;
+    vector<recordReader> rrs;
+    GenericRecord r(c.value<GenericRecord>());
+    rs.push_back((r));
+    rrs.push_back(recordReader());
+    for (int j = 0; j < r.fieldCount(); ++j) {
+        if (r.schema()->leafAt(j)->type() == CORES_ARRAY) {
+            c = GenericDatum(r.fieldAt(j).value<GenericArray>().schema()->leafAt(0));
+            r = c.value<GenericRecord>();
+            rs.push_back((r));
+            rrs.push_back(recordReader());
+            j = 0;
+        }
+    }
+    for (int k = 0; k < rs.size(); ++k) {
+        rrs[k].record = &rs[k];
+    }
+    fstream lf(tblfile2, ios::in);
+    string ll;
+    vector<vector<GenericDatum>> vl;
+    vector<GenericDatum> vo;
+    cout<<"line reading"<<endl;
+    while (std::getline(lf, ll)) {
+        rrs[1].readLine(ll);
+        GenericRecord tmp = rrs[1].getRecord();
+        int64_t orderkey = tmp.fieldAt(0).value<int64_t>();
+        if (orderkey > vl.size()) {
+            vl.resize(orderkey, vo);
+        }
+        vl[orderkey - 1].push_back(GenericDatum(tmp));
+    }}
+
 void SETUP(int argc, char **argv) {
     system("mkdir layer0");
     system("mkdir layer1");
@@ -343,7 +388,7 @@ void TEARDOWN() {
 }
 
 int main(int argc, char **argv) {
-//    SETUP(argc,argv);
+    SETUP(argc,argv);
     ::testing::InitGoogleTest(&argc, argv);
     int ret = RUN_ALL_TESTS();
     TEARDOWN();

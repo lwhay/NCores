@@ -1,0 +1,87 @@
+{
+    "type": "record",
+    "name": "Customer",
+    "fields": [
+    {
+        "name": "c_mktsegment",
+        "clause": "filter",
+        "body": {
+            {
+            "operator": "eq",
+            "operand": {
+                "type": "string",
+                "value": "[SEGMENT]"
+            }
+            }
+        }
+    },
+    {
+        "name": "OrderList",
+        "type": {
+        "type": "array",
+        "items": {
+            "type": "record",
+            "name": "Order",
+            "fields": [
+            {
+                "name": "o_orderdate",
+                "clause": "fetch"
+            },
+            {
+                "name": "o_shippriority",
+                "clause": "fetch"
+            },
+            {
+                "name": "o_orderdate",
+                "clause": "filter",
+                "body": {
+                    {
+                    "operator": "lt",
+                    "operand": {
+                        "type": "string",
+                        "value": "[DATE]"
+                }
+                }
+                }
+            }
+            {
+                "name": "LineitemList",
+                "type": {
+                "type": "array",
+                "items": {
+                    "type": "record",
+                    "name": "Lineitem",
+                    "fields": [
+                    {
+                        "name": "l_orderkey",
+                        "clause": "fetch"
+                    },
+                    {
+                        "name": "l_extendedprice",
+                        "clause": "fetch"
+                    },
+                    {
+                        "name": "l_discount",
+                        "clause": "fetch"
+                    },
+                    {
+                        "name": "l_shipdate",
+                        "clause": "filter",
+                        "body": {
+                            "operator": "gt",
+                            "operand": {
+                                "type": "string",
+                                "value": "[DATE]"
+                            }
+                        }
+                    }
+                    ]
+                }
+                }
+            }
+            ]
+        }
+        }
+    }
+  ]
+}

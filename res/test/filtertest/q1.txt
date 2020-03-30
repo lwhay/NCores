@@ -1,0 +1,29 @@
+{
+    “type": "record",
+    "name": "Lineitem",
+    "fields": [
+        {
+            "name": "l_shipdate",
+            "clause": "filter",
+            "body": {
+            "composite": "conjunctive",
+            "condition": [
+                {
+                "operator": "le",
+                "operand": {
+                    "type": "string",
+                    "value": "1998-12-01"
+                }
+                },
+                {
+                "operator": "ge",
+                "operand": {
+                    "type": "string",
+                    "value": "1996-01-01"
+                }
+                }
+            ]
+          }
+        }
+        ]
+}

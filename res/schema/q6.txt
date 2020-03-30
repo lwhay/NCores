@@ -1,0 +1,71 @@
+{
+    “type": "record",
+    "name": "Lineitem",
+    "fields": [
+        {
+            "name": "l_shipdate",
+            "clause": "filter",
+            "body": {
+            "composite": "conjunctive",
+            "condition": [
+                {
+                "operator": "lt",
+                "operand": {
+                    "type": "string",
+                    "value": "1999-10-01"
+                }
+                },
+                {
+                "operator": "ge",
+                "operand": {
+                    "type": "string",
+                    "value": "1998-10-01"
+                }
+                }
+            ]
+          }
+        },
+        {
+            "name": "l_discount",
+            "clause": "filter",
+            "body": {
+            "composite": "conjunctive",
+            "condition": [
+                {
+                "operator": "lt",
+                "operand": {
+                    "type": "float",
+                    "value": [DISCOUNT]-0.01
+                }
+                },
+                {
+                "operator": "ge",
+                "operand": {
+                    "type": "float",
+                    "value": [DISCOUNT]+0.01
+                }
+                }
+            ]
+          }
+        },
+        {
+            "name": "l_quantity",
+            "clause": "filter",
+            "body": {
+            "operator": "lt",
+            "operand": {
+                "type":"float",
+                "value": [QUANTITY]
+            }
+            }
+        },
+        {
+            "name": "l_extendedprice",
+            "clause": "fetch"
+        },
+        {
+            "name": "l_discount",
+            "clause": "fetch"
+        }
+        ]
+}
