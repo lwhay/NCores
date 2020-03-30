@@ -27,7 +27,6 @@
 #include "Filter.h"
 
 
-
 struct recordReader {
     GenericRecord *record;
 public:
