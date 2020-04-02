@@ -116,7 +116,8 @@ void flatWriter(
 }
 
 int optionReader(bool flag, char *datafile = "./tmpresult/fileout.dat",
-                 char *schema = "../res/test/requiredtest/nest.avsc", char *fschema = "../res/test/filtertest/query.qsc") {
+                 char *schema = "../res/test/requiredtest/nest.avsc",
+                 char *fschema = "../res/test/filtertest/query.qsc") {
     SchemaReader sr(schema, true);
     ValidSchema *vschema = sr.read();
     GenericDatum tmpGD = GenericDatum(vschema->root());
@@ -145,58 +146,59 @@ int optionReader(bool flag, char *datafile = "./tmpresult/fileout.dat",
     file_in.close();
     fileReader fr1(GenericDatum(rs[0]), headreader, bs[0], bs[1] - 1, datafile);
     fileReader fr0(GenericDatum(rs[1]), headreader, bs[1], bs[2] - 1, datafile);
-    int ind=0;
+    int ind = 0;
 
     SchemaReader fr(fschema, false);
     FetchTable ft;
     fr.read(&ft);
-    for (FetchTable::const_iterator it= ft.begin();it!=ft.end();++it){
-        cout<<it->first<<endl;
+    for (FetchTable::const_iterator it = ft.begin(); it != ft.end(); ++it) {
+        cout << it->first << endl;
     }
-    int rcount=headreader->getColumn(bs[1]).getRowcount();
+    int rcount = headreader->getColumn(bs[1]).getRowcount();
     Bitset bst(rcount);
+    int res = 0;
 
     while (fr0.next()) {
 //        fr0.printRecord();
 //        cout << "\n";
-        bool flag=true;
-        for (FetchTable::const_iterator it= ft.begin();it!=ft.end();++it){
-            int ind=r.fieldIndex(it->first);
-            if(!flag) break;
-            switch (r.schema()->leafAt(ind)->type()){
+        bool flag = true;
+        for (FetchTable::const_iterator it = ft.begin(); it != ft.end(); ++it) {
+            int ind = r.fieldIndex(it->first);
+            if (!flag) break;
+            switch (r.schema()->leafAt(ind)->type()) {
                 case CORES_FLOAT:
-                    if(it->second.fn->filter((double)fr0.getRecord().fieldAt(ind).value<float>())){
+                    if (it->second.fn->filter((double) fr0.getRecord().fieldAt(ind).value<float>())) {
                         continue;
-                    }else{
-                        flag= false;
+                    } else {
+                        flag = false;
                         break;
                     };
                 case CORES_DOUBLE:
-                    if(it->second.fn->filter((double)fr0.getRecord().fieldAt(ind).value<double>())){
+                    if (it->second.fn->filter((double) fr0.getRecord().fieldAt(ind).value<double>())) {
                         continue;
-                    }else{
-                        flag= false;
+                    } else {
+                        flag = false;
                         break;
                     };
                 case CORES_INT:
-                    if(it->second.fn->filter((int64_t)fr0.getRecord().fieldAt(ind).value<int>())){
+                    if (it->second.fn->filter((int64_t) fr0.getRecord().fieldAt(ind).value<int>())) {
                         continue;
-                    }else{
-                        flag= false;
+                    } else {
+                        flag = false;
                         break;
                     };
                 case CORES_LONG:
-                    if(it->second.fn->filter((int64_t)fr0.getRecord().fieldAt(ind).value<int64_t>())){
+                    if (it->second.fn->filter((int64_t) fr0.getRecord().fieldAt(ind).value<int64_t>())) {
                         continue;
-                    }else{
-                        flag= false;
+                    } else {
+                        flag = false;
                         break;
                     };
                 case CORES_STRING:
-                    if(it->second.fn->filter((string)fr0.getRecord().fieldAt(ind).value<const char*>())){
+                    if (it->second.fn->filter((string) fr0.getRecord().fieldAt(ind).value<const char *>())) {
                         continue;
-                    }else{
-                        flag= false;
+                    } else {
+                        flag = false;
                         break;
                     };
 
@@ -206,17 +208,20 @@ int optionReader(bool flag, char *datafile = "./tmpresult/fileout.dat",
 //            fr0.printRecord();
 //            cout<<"\n";
             bst.set(ind);
+            res++;
         }
         ind++;
 
     }
 
-    return ind;
+    return res;
 
 }
+
 //q1.txt
 int bitsetReader(char *datafile = "./tmpresult/fileout.dat",
-                 char *schema = "../res/test/requiredtest/nest.avsc", char *fschema = "../res/test/filtertest/query.qsc") {
+                 char *schema = "../res/test/requiredtest/nest.avsc",
+                 char *fschema = "../res/test/filtertest/query.qsc") {
     SchemaReader sr(schema, true);
     ValidSchema *vschema = sr.read();
     GenericDatum tmpGD = GenericDatum(vschema->root());
@@ -249,61 +254,63 @@ int bitsetReader(char *datafile = "./tmpresult/fileout.dat",
     SchemaReader fr(fschema, false);
     FetchTable ft;
     fr.read(&ft);
-    for (FetchTable::const_iterator it= ft.begin();it!=ft.end();++it){
-        cout<<it->first<<endl;
+    for (FetchTable::const_iterator it = ft.begin(); it != ft.end(); ++it) {
+        cout << it->first << endl;
     }
-    int rcount=headreader->getColumn(bs[1]).getRowcount();
-    Bitset bst(rcount,-1);
-    for(FetchTable::const_iterator it= ft.begin();it!=ft.end();++it){
-        int ind=r.fieldIndex(it->first);
-        int off=bst.get(0)?0:bst.nextSetBit(0);
-        auto curtype=r.schema()->leafAt(ind)->type();
-        while(off!=-1){
-            switch (curtype){
-                case CORES_FLOAT:{
-                    if(!it->second.fn->filter((double)fr0.skipColRead<float>(off,ind)))
+    int rcount = headreader->getColumn(bs[1]).getRowcount();
+    Bitset bst(rcount, -1);
+    for (FetchTable::const_iterator it = ft.begin(); it != ft.end(); ++it) {
+        int ind = r.fieldIndex(it->first);
+        int off = bst.get(0) ? 0 : bst.nextSetBit(0);
+        auto curtype = r.schema()->leafAt(ind)->type();
+        while (off != -1) {
+            switch (curtype) {
+                case CORES_FLOAT: {
+                    if (!it->second.fn->filter((double) fr0.skipColRead<float>(off, ind)))
                         bst.clear(off);
-                        break;
-                    }
-                case CORES_DOUBLE:{
-                    if(!it->second.fn->filter((double)fr0.skipColRead<double>(off,ind)))
+                    break;
+                }
+                case CORES_DOUBLE: {
+                    if (!it->second.fn->filter((double) fr0.skipColRead<double>(off, ind)))
                         bst.clear(off);
-                        break;
-                    }
-                case CORES_INT:{
-                    if(!it->second.fn->filter((int64_t)fr0.skipColRead<int>(off,ind)))
+                    break;
+                }
+                case CORES_INT: {
+                    if (!it->second.fn->filter((int64_t) fr0.skipColRead<int>(off, ind)))
                         bst.clear(off);
-                        break;
-                    }
-                case CORES_LONG:{
-                    if(!it->second.fn->filter((int64_t)fr0.skipColRead<int64_t>(off,ind)))
+                    break;
+                }
+                case CORES_LONG: {
+                    if (!it->second.fn->filter((int64_t) fr0.skipColRead<int64_t>(off, ind)))
                         bst.clear(off);
-                    break;}
-                case CORES_STRING:{
-                    string tmp=fr0.skipColRead<const char*>(off,ind);
+                    break;
+                }
+                case CORES_STRING: {
+                    string tmp = fr0.skipColRead<const char *>(off, ind);
 //                    if(ind==10) cout<<off<<" "<<tmp<<endl;
-                    if(!it->second.fn->filter(tmp))
+                    if (!it->second.fn->filter(tmp))
                         bst.clear(off);
                     break;
                 }
             }
-            off=bst.nextSetBit(off);
+            off = bst.nextSetBit(off);
         }
     }
 
     fr0.fresh();
+    int res = 0;
 
-    int off=bst.get(0)?0:bst.nextSetBit(0);
-    while(off!=-1){
+    int off = bst.get(0) ? 0 : bst.nextSetBit(0);
+    while (off != -1) {
+        res++;
         fr0.skipread(off);
-        off=bst.nextSetBit(off);
+        off = bst.nextSetBit(off);
 //        fr0.printRecord();
 //        cout<<"\n";
     }
 
-    return  0;
-    }
-
+    return res;
+}
 
 
 void SETUP(char **argv) {
@@ -315,12 +322,15 @@ void SETUP(char **argv) {
 }
 
 TEST(FilterTest, DummyTest) {
+    system("echo 3 > /proc/sys/vm/drop_caches");
     Tracer tc;
     tc.startTime();
-    EXPECT_EQ(1500, optionReader(true));
-    cout<<tc.getRunTime()<<endl;
-    EXPECT_EQ(1500, bitsetReader());
-    cout<<tc.getRunTime();
+    int ans=optionReader(true);
+    cout << tc.getRunTime() << endl;
+    system("echo 3 > /proc/sys/vm/drop_caches");
+    tc.getRunTime();
+    EXPECT_EQ(ans, bitsetReader());
+    cout << tc.getRunTime();
 }
 
 void TEARDOWN() {
@@ -330,8 +340,8 @@ void TEARDOWN() {
 }
 
 int main(int argc, char **argv) {
-    if(argc==2)
-    SETUP(argv);
+    if (argc == 2)
+        SETUP(argv);
     ::testing::InitGoogleTest(&argc, argv);
     int ret = RUN_ALL_TESTS();
     TEARDOWN();

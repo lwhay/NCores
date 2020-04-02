@@ -20,9 +20,9 @@ class Bitset {
 public:
     Bitset(unsigned long long capacity, unsigned char iv = 0) : _capacity(capacity), _setbits(0), _validity(0),
                                                                 bitvector(new unsigned char[capacity / 8 + 1]) {
-        memset(bitvector, iv, capacity/8+1);
-        for(int i=capacity%8;i<8;i++){
-            bitvector[capacity/8]&= (0xff xor (1 << i));
+        memset(bitvector, iv, capacity / 8 + 1);
+        for (int i = capacity % 8; i < 8; i++) {
+            bitvector[capacity / 8] &= (0xff xor (1 << i));
         }
 
     }
@@ -45,9 +45,9 @@ public:
         return bitvector[idx];
     }
 
-    inline unsigned long long nextSetBit(unsigned long long idx, int gran = 64) {
+    inline unsigned long long nextSetBit(unsigned long long idx, int gran = 8) {
+        idx++;
         if (gran == 64) {
-            idx++;
             while (idx < _capacity) {
                 /*if (idx % 64 == 0 && idx + 64 < _capacity) {
                     if (((unsigned long long *) bitvector)[idx / 64] == 0) {
@@ -169,15 +169,15 @@ public:
                     }*/
                     for (char pos = 0; pos < limit; pos++) {
                         if (dw & (1L << pos)) {
-                            if((idx+pos)<_capacity)
-                            return (idx + pos);
+                            if ((idx + pos) < _capacity)
+                                return (idx + pos);
                             else return -1;
                         }
                     }
                 } else {
                     idx += limit;
                 }
-            } ;
+            };
         } else if (gran == 16) {
             do {
                 char begin = idx % 16;
