@@ -9,7 +9,7 @@
             "operator": "lt",
             "operand": {
                 "type": "long",
-                "value": 60
+                "value": 6000
                 }
             }
         },

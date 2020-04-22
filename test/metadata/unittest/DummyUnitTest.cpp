@@ -302,12 +302,16 @@ int requiredReader(bool flag, char *datafile = "./tmpresult/fileout.dat",
 //        cout<<endl;
         indp++;
         int64_t key=fr0.getRecord().fieldAt(0).value<int64_t >();
+        fr0.printRecord();
+        cout<<endl;
         int i = fr0.getArrsize();
         pss.resize(i);
         for (int j = 0; j < i; ++j) {
             fr1.next();
 //            cout<<endl;
             indps++;
+            fr1.printRecord();
+            cout<<endl;
             pss[j]=fr1.getRecord();
         }
 //        cout<<endl;

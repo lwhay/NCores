@@ -201,7 +201,9 @@ public:
                 if (dw != 0) {
                     for (char pos = 0; pos < limit; pos++) {
                         if (dw & (1 << pos)) {
-                            return (idx + pos);
+                            if ((idx + pos) < _capacity)
+                                return (idx + pos);
+                            else return -1;
                         }
                     }
                 } else {
@@ -252,14 +254,14 @@ public:
     }
 
     void setRange(unsigned long long bidx, unsigned long long eidx) {
-        assert(bidx < eidx && bidx >= 0 && eidx < _capacity);
+        assert(bidx < eidx && bidx >= 0 && eidx <= _capacity);
         if (eidx % 8 <= bidx % 8) {
             for (unsigned long long idx = bidx; idx < eidx; idx++) {
                 set(idx);
             }
             return;
         }
-        unsigned long long lrest = 8 - bidx % 8;
+        unsigned long long lrest = (8 - bidx % 8>eidx-bidx)?eidx-bidx:8 - bidx % 8;
         unsigned long long bbyte = bidx / 8 + 1;
         unsigned long long bytes = (eidx / 8 > bidx / 8) ? (eidx / 8 - bidx / 8 - 1) : 0;
         unsigned long long rbidx = (eidx / 8) * 8;

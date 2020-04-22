@@ -90,7 +90,7 @@ public:
         return offset;
     }
 
-    long getRowcount(){
+    long getRowcount() {
         return blocks.back().getOffset();
     }
 
@@ -1617,23 +1617,24 @@ public:
     type skipColRead(int off, int i) {
         if (off < headreader->getColumn(i + begin).getBlock(bind[i]).getOffset()) {
             rind[i] = (bind[i] == 0) ? off :
-                    off - headreader->getColumn(i + begin).getBlock(bind[i] - 1).getOffset();
+                      off - headreader->getColumn(i + begin).getBlock(bind[i] - 1).getOffset();
         } else {
-            bind[i] = headreader->getColumn(i + begin).findOff(bind[i]+1, off, rind[i]);
+            bind[i] = headreader->getColumn(i + begin).findOff(bind[i] + 1, off, rind[i]);
             blockreaders[i]->skipload(headreader->getColumn(i + begin).getOffset() + blocksize * bind[i]);
             rcounts[i] = headreader->getColumn(i + begin).getBlock(bind[i]).getRowcount();
             if (r.schema()->leafAt(i)->type() == CORES_STRING) {
+//                delete offarrs[i];
                 offarrs[i] = blockreaders[i]->initString(offsize);
             }
         }
-        if(r.schema()->leafAt(i)->type()==CORES_STRING){
+        if (r.schema()->leafAt(i)->type() == CORES_STRING) {
             if (rind[i] == 0) {
                 offarrs[i] = blockreaders[i]->initString(offsize);
             }
             int tmpi = (*offarrs[i])[blockreaders[i]->getValidOff(rind[i])];
             return blockreaders[i]->get<type>(tmpi);
         }
-        return  blockreaders[i]->get<type>(blockreaders[i]->getValidOff(rind[i]));
+        return blockreaders[i]->get<type>(blockreaders[i]->getValidOff(rind[i]));
 
     }
 
@@ -1645,10 +1646,10 @@ public:
                 rind[i] = (bind[i] == 0) ? off :
                           off - headreader->getColumn(i + begin).getBlock(bind[i] - 1).getOffset();
             else {
-                bind[i] = headreader->getColumn(i + begin).findOff(bind[i]+1, off, rind[i]);
+                bind[i] = headreader->getColumn(i + begin).findOff(bind[i] + 1, off, rind[i]);
                 blockreaders[i]->skipload(headreader->getColumn(i + begin).getOffset() + blocksize * bind[i],
-                        !r.schema()->isRequired(i)?
-                                          headreader->getColumn(i + begin).getBlock(bind[i]).getRowcount():0);
+                                          !r.schema()->isRequired(i) ?
+                                          headreader->getColumn(i + begin).getBlock(bind[i]).getRowcount() : 0);
                 rcounts[i] = headreader->getColumns()[i + begin].getBlock(bind[i]).getRowcount();
                 if (r.schema()->leafAt(i)->type() == CORES_STRING) {
                     offarrs[i] = blockreaders[i]->initString(offsize);
@@ -1656,11 +1657,11 @@ public:
             }
 
             if (!r.schema()->isRequired(i))
-            if (!blockreaders[i]->isvalid(rind[i])) {
-                r.fieldAt(i) = GenericDatum();
-                cout << "||" << " ";
-                continue;
-            }
+                if (!blockreaders[i]->isvalid(rind[i])) {
+                    r.fieldAt(i) = GenericDatum();
+                    cout << "||" << " ";
+                    continue;
+                }
             switch (r.schema()->leafAt(i)->type()) {
                 case CORES_LONG: {
                     int64_t tmp = blockreaders[i]->get<int64_t>(blockreaders[i]->getValidOff(rind[i]));
@@ -1691,16 +1692,17 @@ public:
                     r.fieldAt(i) = tmp;
                     break;
                 }
-                default:assert(true);
+                default:
+                    assert(true);
             }
         }
     }
 
-    void fresh(){
+    void fresh() {
         int colnum = end - begin;
-        rind = vector<int>(colnum,0);
-        bind = vector<int>(colnum,0);
-        rcounts = vector<int>(colnum,0);
+        rind = vector<int>(colnum, 0);
+        bind = vector<int>(colnum, 0);
+        rcounts = vector<int>(colnum, 0);
         for (int i = begin; i < end; ++i) {
             fseek(fpp[i - begin], headreader->getColumns()[i].getOffset(), SEEK_SET);
             rcounts[i - begin] = headreader->getColumns()[i].getBlock(bind[i - begin]).getRowcount();

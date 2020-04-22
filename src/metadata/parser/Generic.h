@@ -118,7 +118,7 @@ public:
 
     GenericDatum(GenericRecord *v);
 
-    GenericDatum(GenericRecord& v);
+    GenericDatum(GenericRecord &v);
 
     /**
      * Constructs a datum corresponding to the given CORES type.
@@ -252,7 +252,7 @@ public:
     size_t fieldIndex(const std::string &name) const {
         size_t index = 0;
         if (!schema()->nameIndex(name, index)) {
-            cout << ("Invalid field name: " + name) << endl;
+//            cout << ("Invalid field name: " + name) << endl;
             return -1;
         }
         return index;
@@ -376,7 +376,7 @@ GenericDatum::GenericDatum(GenericRecord *v) {
     value_ = *v;
 }
 
-GenericDatum::GenericDatum(GenericRecord& v) {
+GenericDatum::GenericDatum(GenericRecord &v) {
     type_ = CORES_RECORD;
     value_ = v;
 }

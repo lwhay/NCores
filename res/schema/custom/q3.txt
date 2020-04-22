@@ -6,12 +6,10 @@
         "name": "c_mktsegment",
         "clause": "filter",
         "body": {
-            {
             "operator": "eq",
             "operand": {
                 "type": "string",
-                "value": "[SEGMENT]"
-            }
+                "value": "BUILDING"
             }
         }
     },
@@ -35,15 +33,13 @@
                 "name": "o_orderdate",
                 "clause": "filter",
                 "body": {
-                    {
                     "operator": "lt",
                     "operand": {
                         "type": "string",
-                        "value": "[DATE]"
+                        "value": "1998-01-24"
                 }
                 }
-                }
-            }
+            },
             {
                 "name": "LineitemList",
                 "type": {
@@ -71,7 +67,7 @@
                             "operator": "gt",
                             "operand": {
                                 "type": "string",
-                                "value": "[DATE]"
+                                "value": "1993-12-28"
                             }
                         }
                     }

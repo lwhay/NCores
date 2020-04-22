@@ -1,0 +1,51 @@
+{
+	"type": "record",
+	"name": "Order",
+	"fields": [
+        {
+			"name": "o_totalprice",
+			"clause": "filter",
+			"body": {
+				"operator": "lt",
+				"operand": {
+					"type": "double",
+					"value": 60000.0
+				}
+			}
+		},
+		{
+			"name": "LineitemList",
+			"type": {
+				"type": "array",
+				"items": {
+					"type": "record",
+					"name": "Lineitem",
+					"fields": [
+						{
+							"name": "l_shipdate",
+							"clause": "filter",
+							"body": {
+								"operator": "gt",
+								"operand": {
+									"type": "string",
+									"value": "1993-12-28"
+								}
+							}
+						},
+                        {
+							"name": "l_discount",
+							"clause": "filter",
+							"body": {
+								"operator": "gt",
+								"operand": {
+									"type": "float",
+									"value": 0.05
+								}
+							}
+						}
+					]
+				}
+			}
+		}
+	]
+}

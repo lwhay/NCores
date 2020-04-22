@@ -244,7 +244,7 @@ struct function_<char *> {
 };
 
 template<>
-struct function_<const char *>{
+struct function_<const char *> {
     static const char *_get(void *_cache, int idx) {
         return (const char *) _cache + idx;
     }
@@ -332,7 +332,7 @@ public:
         fread(_cache, sizeof(char), _limit, _fp);
     }
 
-    void skipload(int64_t offset, int rowcount=0) {
+    void skipload(int64_t offset, int rowcount = 0) {
         _cursor = ceil((double) rowcount / 8);
         _count = 0;
         fseek(_fp, offset, SEEK_SET);
@@ -344,7 +344,7 @@ public:
     }
 
     int getValidOff(int off) {
-        if(_cursor==0) return off;
+        if (_cursor == 0) return off;
         int count = 0;
         for (int i = 0; i < off / 8; ++i) {
             for (int j = 0; j < 8; ++j) {
@@ -419,15 +419,16 @@ public:
         char *tmpbuf = new char[4]();
         char *tmp = (char *) _cache + _cursor;
 
-        vector<int> *offarr = new vector<int>();
         memcpy(tmpbuf, tmp, offsize);
         int *tmpi = (int *) tmpbuf;
-        offarr->push_back(*tmpi);
+        int t = *tmpi / offsize;
+        vector<int> *offarr = new vector<int>(t, 0);
+        (*offarr)[0] = *tmpi;
         int num = (*tmpi) / offsize;
         for (int j = 1; j < num; ++j) {
             tmp += offsize;
             memcpy(tmpbuf, tmp, offsize);
-            offarr->push_back(*tmpi);
+            (*offarr)[j] = (*tmpi);
         }
         return offarr;
     }
