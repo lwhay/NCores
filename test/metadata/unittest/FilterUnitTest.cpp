@@ -347,35 +347,80 @@ int queryTest(char *datafile = "./tmpresult/fileout.dat",
     SchemaReader fr(fschema, false);
     FetchTable ft;
     fr.read(&ft);
+    vector<FetchTable> fts;
+    FetchTable tmpft;
     for (FetchTable::const_iterator it = ft.begin(); it != ft.end(); ++it) {
-        cout << it->first << endl;
+        if (rs[0].fieldIndex(it->first) != -1) tmpft.emplace(*it);
     }
-    int rcount = headreader->getColumn(bs[1]).getRowcount();
-    vector<Bitset> bsts({Bitset(headreader->getColumn(bs[0]).getRowcount(), -1), Bitset(rcount, 0)});
-//        cout<<headreader->getColumn(bs[0]).getRowcount()<<" "<<rcount<<endl;
-    bool flag = true;
-    for (FetchTable::reverse_iterator it = ft.rbegin(); it != ft.rend(); it++) {
+    fts.push_back(tmpft);
+    tmpft.clear();
+    for (FetchTable::const_iterator it = ft.begin(); it != ft.end(); ++it) {
+        if (rs[1].fieldIndex(it->first) != -1) tmpft.emplace(*it);
+    }
+    fts.push_back(tmpft);
+    for (FetchTable::const_iterator it = fts[0].begin(); it != fts[0].end(); ++it) {
+        cout << "0:" << it->first << endl;
+    }
+    for (FetchTable::const_iterator it = fts[1].begin(); it != fts[1].end(); ++it) {
+        cout << "1:" << it->first << endl;
+    }
+    vector<Bitset> bsts({Bitset(headreader->getColumn(bs[0]).getRowcount(), -1),
+                         Bitset(headreader->getColumn(bs[1]).getRowcount(), 0)});
+    int i = 0;
+    for (FetchTable::reverse_iterator it = fts[0].rbegin(); it != fts[0].rend(); it++) {
         int ind = rs[0].fieldIndex(it->first);
-        int i = 0;
-        if (ind == -1) i = 1;
-        if (i == 1 && flag) {
-            ind = rs[1].fieldIndex(it->first);
-            flag = false;
-            frs[0].fresh();
-            int idx[] = {0, 0};
-            while (frs[0].next()) {
-                int l = frs[0].getArrsize();
-                if (bsts[0].get(idx[1])) {
-                    bsts[1].setRange(idx[0], idx[0] + l);
-                }
-                idx[0] += l;
-                idx[1]++;
-            }
-        }
         int off = bsts[i].get(0) ? 0 : bsts[i].nextSetBit(0);
         auto curtype = rs[i].schema()->leafAt(ind)->type();
         while (off != -1) {
-//                cout<<off<<endl;
+            switch (curtype) {
+                case CORES_FLOAT: {
+                    if (!it->second.fn->filter((double) frs[i].skipColRead<float>(off, ind)))
+                        bsts[i].clear(off);
+                    break;
+                }
+                case CORES_DOUBLE: {
+                    if (!it->second.fn->filter((double) frs[i].skipColRead<double>(off, ind)))
+                        bsts[i].clear(off);
+                    break;
+                }
+                case CORES_INT: {
+                    if (!it->second.fn->filter((int64_t) frs[i].skipColRead<int>(off, ind)))
+                        bsts[i].clear(off);
+                    break;
+                }
+                case CORES_LONG: {
+                    if (!it->second.fn->filter((int64_t) frs[i].skipColRead<int64_t>(off, ind)))
+                        bsts[i].clear(off);
+                    break;
+                }
+                case CORES_STRING: {
+                    string tmp = frs[i].skipColRead<const char *>(off, ind);
+                    if (!it->second.fn->filter(tmp))
+                        bsts[i].clear(off);
+                    break;
+                }
+            }
+            off = bsts[i].nextSetBit(off);
+        }
+    }
+
+    frs[0].fresh();
+    int idx[] = {0, 0};
+    while (frs[0].next()) {
+        int l = frs[0].getArrsize();
+        if (bsts[0].get(idx[1])) {
+            bsts[1].setRange(idx[0], idx[0] + l);
+        }
+        idx[0] += l;
+        idx[1]++;
+    }
+
+    i = 1;
+    for (FetchTable::reverse_iterator it = fts[1].rbegin(); it != fts[1].rend(); it++) {
+        int ind = rs[i].fieldIndex(it->first);
+        int off = bsts[i].get(0) ? 0 : bsts[i].nextSetBit(0);
+        auto curtype = rs[i].schema()->leafAt(ind)->type();
+        while (off != -1) {
             switch (curtype) {
                 case CORES_FLOAT: {
                     if (!it->second.fn->filter((double) frs[i].skipColRead<float>(off, ind)))
@@ -460,16 +505,27 @@ int queryTest2(char *datafile = "./tmpresult/fileout.dat",
     SchemaReader fr(fschema, false);
     FetchTable ft;
     fr.read(&ft);
+    vector<FetchTable> fts;
+    FetchTable tmpft;
     for (FetchTable::const_iterator it = ft.begin(); it != ft.end(); ++it) {
-        cout << it->first << endl;
+        if (rs[0].fieldIndex(it->first) != -1) tmpft.emplace(*it);
     }
-    int rcount = headreader->getColumn(bs[1]).getRowcount();
+    fts.push_back(tmpft);
+    tmpft.clear();
+    for (FetchTable::const_iterator it = ft.begin(); it != ft.end(); ++it) {
+        if (rs[1].fieldIndex(it->first) != -1) tmpft.emplace(*it);
+    }
+    fts.push_back(tmpft);
+    for (FetchTable::const_iterator it = fts[0].begin(); it != fts[0].end(); ++it) {
+        cout << "0:" << it->first << endl;
+    }
+    for (FetchTable::const_iterator it = fts[1].begin(); it != fts[1].end(); ++it) {
+        cout << "1:" << it->first << endl;
+    }
     int idx = 0;
     while (frs[0].next()) {
-//        fr0.printRecord();
-//        cout << "\n";
         bool flag = true;
-        for (FetchTable::const_iterator it = ft.begin(); it != ft.end(); ++it) {
+        for (FetchTable::const_iterator it = fts[0].begin(); it != fts[0].end(); ++it) {
             int ind = rs[0].fieldIndex(it->first);
             if (ind == -1) continue;
             if (!flag) break;
@@ -517,7 +573,7 @@ int queryTest2(char *datafile = "./tmpresult/fileout.dat",
             frs[1].next();
             if (!flag) continue;
             bool flag = true;
-            for (FetchTable::const_iterator it = ft.begin(); it != ft.end(); ++it) {
+            for (FetchTable::const_iterator it = fts[1].begin(); it != fts[1].end(); ++it) {
                 int ind = rs[1].fieldIndex(it->first);
                 if (ind == -1) continue;
                 if (!flag) break;
@@ -557,14 +613,9 @@ int queryTest2(char *datafile = "./tmpresult/fileout.dat",
                             flag = false;
                             break;
                         };
-
                 }
             }
-            if (flag) {
-                idx++;
-//            fr0.printRecord();
-//            cout<<"\n";
-            }
+            if (flag) idx++;
         }
     }
     cout << idx << endl;
@@ -584,12 +635,12 @@ TEST(FilterTest, DummyTest) {
     Tracer tc;
     tc.startTime();
     int ans = optionReader(true);
-//    queryTest();
-    cout << tc.getRunTime() << endl;
+    queryTest();
+//    cout << tc.getRunTime() << endl;
     system("echo 3 > /proc/sys/vm/drop_caches");
     tc.getRunTime();
-    EXPECT_EQ(ans, bitsetReader());
-//    queryTest2();
+//    EXPECT_EQ(ans, bitsetReader());
+    queryTest2();
     cout << tc.getRunTime();
 }
 
@@ -607,6 +658,7 @@ int main(int argc, char **argv) {
     TEARDOWN();
     return ret;
 
+//    bitsetReader();
 //    queryTest();
 //    queryTest2();
     return 0;
