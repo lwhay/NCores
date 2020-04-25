@@ -310,6 +310,10 @@ public:
         fflush(_fp);
     }
 
+    int bseek(int off) {
+        return fseek(_fp, off, SEEK_SET);
+    }
+
     template<typename type>
     type *readFromFile() {
         if (fseek(_fp, _offset, SEEK_SET) == 0) {
@@ -431,6 +435,23 @@ public:
             (*offarr)[j] = (*tmpi);
         }
         return offarr;
+    }
+
+    void initString(vector<int> *arr, int offsize) {
+        char *tmpbuf = new char[4]();
+        char *tmp = (char *) _cache + _cursor;
+        memcpy(tmpbuf, tmp, offsize);
+        int *tmpi = (int *) tmpbuf;
+        int t = *tmpi / offsize;
+        arr->clear();
+        arr->resize(t, 0);
+        (*arr)[0] = *tmpi;
+        int num = (*tmpi) / offsize;
+        for (int j = 1; j < num; ++j) {
+            tmp += offsize;
+            memcpy(tmpbuf, tmp, offsize);
+            (*arr)[j] = (*tmpi);
+        }
     }
 
     char *getoffstring(int offset) {

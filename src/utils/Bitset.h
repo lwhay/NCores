@@ -27,7 +27,9 @@ public:
 
     }
 
-    ~Bitset() { delete[] bitvector; }
+    ~Bitset() {
+//        if(bitvector==NULL)delete[] bitvector;
+    }
 
     unsigned long long size() {
         return _capacity;

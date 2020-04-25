@@ -341,6 +341,7 @@ int queryTest(char *datafile = "./tmpresult/fileout.dat",
     shared_ptr<HeadReader> headreader(new HeadReader());
     headreader->readHeader(file_in);
     file_in.close();
+
     vector<fileReader> frs({fileReader(GenericDatum(rs[0]), headreader, bs[0], bs[1] - 1, datafile),
                             fileReader(GenericDatum(rs[1]), headreader, bs[1], bs[2] - 1, datafile)});
 
@@ -408,6 +409,7 @@ int queryTest(char *datafile = "./tmpresult/fileout.dat",
     int idx[] = {0, 0};
     while (frs[0].next()) {
         int l = frs[0].getArrsize();
+//        cout<<l<<endl;
         if (bsts[0].get(idx[1])) {
             bsts[1].setRange(idx[0], idx[0] + l);
         }
@@ -634,7 +636,7 @@ TEST(FilterTest, DummyTest) {
     system("echo 3 > /proc/sys/vm/drop_caches");
     Tracer tc;
     tc.startTime();
-    int ans = optionReader(true);
+//    int ans = optionReader(true);
     queryTest();
 //    cout << tc.getRunTime() << endl;
     system("echo 3 > /proc/sys/vm/drop_caches");
@@ -651,15 +653,15 @@ void TEARDOWN() {
 }
 
 int main(int argc, char **argv) {
-    if (argc == 2)
-        SETUP(argv);
-    ::testing::InitGoogleTest(&argc, argv);
-    int ret = RUN_ALL_TESTS();
-    TEARDOWN();
-    return ret;
+////    if (argc == 2)
+////        SETUP(argv);
+//    ::testing::InitGoogleTest(&argc, argv);
+//    int ret = RUN_ALL_TESTS();
+////    TEARDOWN();
+//    return ret;
 
 //    bitsetReader();
-//    queryTest();
-//    queryTest2();
+    queryTest();
+    queryTest2();
     return 0;
 }

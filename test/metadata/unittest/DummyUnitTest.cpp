@@ -302,7 +302,7 @@ int requiredReader(bool flag, char *datafile = "./tmpresult/fileout.dat",
 //        cout<<endl;
         indp++;
         int64_t key=fr0.getRecord().fieldAt(0).value<int64_t >();
-        fr0.printRecord();
+//        fr0.printRecord();
         cout<<endl;
         int i = fr0.getArrsize();
         pss.resize(i);
@@ -310,7 +310,7 @@ int requiredReader(bool flag, char *datafile = "./tmpresult/fileout.dat",
             fr1.next();
 //            cout<<endl;
             indps++;
-            fr1.printRecord();
+//            fr1.printRecord();
             cout<<endl;
             pss[j]=fr1.getRecord();
         }
@@ -392,7 +392,7 @@ void TEARDOWN() {
 }
 
 int main(int argc, char **argv) {
-    SETUP(argc,argv);
+//    SETUP(argc,argv);
     ::testing::InitGoogleTest(&argc, argv);
     int ret = RUN_ALL_TESTS();
     TEARDOWN();

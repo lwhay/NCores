@@ -1582,37 +1582,6 @@ public:
         }
     }
 
-
-/*
-//    fileReader(GenericDatum c, int _blocksize) {
-//        ind = 0;
-//        r = new GenericRecord ();
-//        r[0] = new GenericRecord(c.value<GenericRecord>());
-//        GenericDatum t = r[0]->fieldAt(9);
-//        c = GenericDatum(r[0]->fieldAt(9).value<GenericArray>().schema()->leafAt(0));
-//        r[1] = new GenericRecord(c.value<GenericRecord>());
-//        ifstream file_in;
-//        file_in.open("./fileout.dat", ios_base::in | ios_base::binary);
-//        unique_ptr<HeadReader> _headreader((new HeadReader()));
-//        headreader = std::move(_headreader);
-//        headreader->readHeader(file_in);
-//        file_in.close();
-//        fpp = new FILE *[26];
-//        rind = new int[26]();
-//        bind = new int[26]();
-//        rcounts = new int[26]();
-//        blockreaders = new Block *[26];
-//        blocksize = _blocksize;
-//        for (int i = 0; i < 26; ++i) {
-//            fpp[i] = fopen("./fileout.dat", "rb");
-//            fseek(fpp[i], headreader->getColumns()[i].getOffset(), SEEK_SET);
-//            rcounts[i] = headreader->getColumns()[i].getBlock(bind[i]).getRowcount();
-//            blockreaders[i] = new Block(fpp[i], 0L, 0, blocksize);
-//            blockreaders[i]->loadFromFile();
-//        }
-//    }
-*/
-
     template<typename type>
     type skipColRead(int off, int i) {
         if (off < headreader->getColumn(i + begin).getBlock(bind[i]).getOffset()) {
@@ -1624,7 +1593,8 @@ public:
             rcounts[i] = headreader->getColumn(i + begin).getBlock(bind[i]).getRowcount();
             if (r.schema()->leafAt(i)->type() == CORES_STRING) {
 //                delete offarrs[i];
-                offarrs[i] = blockreaders[i]->initString(offsize);
+                blockreaders[i]->initString(offarrs[i], offsize);
+//                offarrs[i] = blockreaders[i]->initString(offsize);
             }
         }
         if (r.schema()->leafAt(i)->type() == CORES_STRING) {
@@ -1704,9 +1674,8 @@ public:
         bind = vector<int>(colnum, 0);
         rcounts = vector<int>(colnum, 0);
         for (int i = begin; i < end; ++i) {
-            fseek(fpp[i - begin], headreader->getColumns()[i].getOffset(), SEEK_SET);
-            rcounts[i - begin] = headreader->getColumns()[i].getBlock(bind[i - begin]).getRowcount();
-            blockreaders[i - begin] = new Block(fpp[i - begin], 0L, 0, blocksize);
+            rcounts[i - begin] = headreader->getColumns()[i].getBlock(0).getRowcount();
+            blockreaders[i - begin]->bseek(headreader->getColumns()[i].getOffset());
             if (r.schema()->isRequired(i - begin))
                 blockreaders[i - begin]->loadFromFile();
             else
